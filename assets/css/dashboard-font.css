@@ -1,0 +1,80 @@
+@font-face {
+  font-family: VazirmatnVF;
+  src: url("font/VazirMatn/VazirmatnVF.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Admin RTL */
+html[dir="rtl"] body,
+html[dir="rtl"] #wpbody,
+html[dir="rtl"] #wpwrap,
+html[dir="rtl"] .wrap,
+html[dir="rtl"] .form-table,
+html[dir="rtl"] .wp-list-table,
+html[dir="rtl"] input,
+html[dir="rtl"] select,
+html[dir="rtl"] textarea,
+html[dir="rtl"] button:not(.dashicons),
+html[dir="rtl"] span:not(.dashicons):not(.icon):not(.CodeMirror-lines *):not(.star),
+html[dir="rtl"] a,
+html[dir="rtl"] p,
+html[dir="rtl"] div:not(.dashicons):not(.star),
+html[dir="rtl"] label,
+html[dir="rtl"] strong,
+html[dir="rtl"] em,
+html[dir="rtl"] li,
+html[dir="rtl"] td,
+html[dir="rtl"] th,
+html[dir="rtl"] #adminmenu a,
+html[dir="rtl"] #adminmenu .wp-submenu a,
+html[dir="rtl"] #wpadminbar .ab-item,
+html[dir="rtl"] #wpadminbar .ab-label {
+    font-family: 'VazirmatnVF', sans-serif !important;
+}
+
+/* Headings RTL */
+html[dir="rtl"] h1,
+html[dir="rtl"] h2,
+html[dir="rtl"] h3,
+html[dir="rtl"] h4,
+html[dir="rtl"] h5,
+html[dir="rtl"] h6 {
+    font-family: 'VazirmatnVF', sans-serif !important;
+}
+
+/* Keep Dashicons intact */
+.dashicons,
+.dashicons-before:before {
+    font-family: "dashicons";
+}
+
+span.dashicons {
+    font-family: "dashicons" !important;
+}
+
+/* Keep wpadminbar icons intact */
+html[dir="rtl"] #wpadminbar .ab-icon:before,
+html[dir="rtl"] #wpadminbar .dashicons {
+    font-family: "dashicons" !important;
+}
+
+/* Login, Register, Lost Password (RTL) */
+html[dir="rtl"] body.login,
+html[dir="rtl"] body.login form,
+html[dir="rtl"] body.login label,
+html[dir="rtl"] body.login input,
+html[dir="rtl"] body.login #nav,
+html[dir="rtl"] body.login #backtoblog {
+    font-family: 'VazirmatnVF', sans-serif !important;
+}
+
+/* Keep monospace for code elements */
+html[dir="rtl"] pre,
+html[dir="rtl"] kbd,
+html[dir="rtl"] code,
+html[dir="rtl"] .CodeMirror-lines *,
+html[dir="rtl"] .CodeMirror-lines span {
+    font-family: monospace !important;
+}
