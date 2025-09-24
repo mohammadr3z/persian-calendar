@@ -1,4 +1,4 @@
-/* global PersianCalendarSettings, wp */
+/* global PerscaSettings, wp */
 (function () {
   'use strict';
 

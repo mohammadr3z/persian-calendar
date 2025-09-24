@@ -1,0 +1,108 @@
+# Copyright (C) 2024 Persian Calendar
+# This file is distributed under the same license as the Persian Calendar package.
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Persian Calendar 1.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-09-17 10:41+0330\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"X-Generator: Poedit 2.2\n"
+
+#: includes/class-persca-admin.php:131
+msgid "You do not have permission to change these settings."
+msgstr ""
+
+#: includes/class-persca-admin.php:148
+msgid "Security error: Invalid request."
+msgstr ""
+
+#: includes/class-persca-admin.php:247
+msgid "Jalali Calendar"
+msgstr ""
+
+#: includes/class-persca-admin.php:248
+msgid "Enable Persian/Jalali calendar system for the entire website."
+msgstr ""
+
+#: includes/class-persca-admin.php:252
+msgid "Gutenberg Calendar"
+msgstr ""
+
+#: includes/class-persca-admin.php:253
+msgid "Enable Persian calendar in Gutenberg editor."
+msgstr ""
+
+#: includes/class-persca-admin.php:257
+msgid "Regional Settings"
+msgstr ""
+
+#: includes/class-persca-admin.php:258
+msgid "Set website timezone to Iran and start week from Saturday."
+msgstr ""
+
+#: includes/class-persca-admin.php:262
+msgid "Persian Digits"
+msgstr ""
+
+#: includes/class-persca-admin.php:263
+msgid "Convert English digits to Persian digits in dates."
+msgstr ""
+
+#: includes/class-persca-admin.php:267
+msgid "Dashboard Font"
+msgstr ""
+
+#: includes/class-persca-admin.php:268
+msgid "Apply clear and beautiful Persian font for WordPress dashboard."
+msgstr ""
+
+#: includes/class-persca-admin.php:301 includes/class-persca-admin.php:80
+msgid "Persian Calendar Settings"
+msgstr ""
+
+#: includes/class-persca-admin.php:302
+msgid ""
+"Configure Persian calendar and digit conversion settings for your WordPress "
+"site"
+msgstr ""
+
+#: includes/class-persca-admin.php:316
+msgid "General Settings"
+msgstr ""
+
+#: includes/class-persca-admin.php:329
+msgid "Save Changes"
+msgstr ""
+
+#: includes/class-persca-admin.php:339
+msgid ""
+"Persian Calendar plugin converts Gregorian dates to Persian/Jalali dates in "
+"WordPress."
+msgstr ""
+
+#: includes/class-persca-admin.php:340
+msgid "Perfect for Persian websites"
+msgstr ""
+
+#: includes/class-persca-admin.php:346
+msgid "Need More Features?"
+msgstr ""
+
+#: includes/class-persca-admin.php:347
+msgid "Access advanced Persian calendar features and premium support."
+msgstr ""
+
+#: includes/class-persca-admin.php:348
+msgid "Learn More"
+msgstr ""
+
+#: includes/class-persca-admin.php:81
+msgid "Persian Calendar"
+msgstr ""
