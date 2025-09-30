@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Persian Calendar
- * Description: Complete Persian/Jalali calendar conversion for WordPress with Gutenberg calendar, Persian digits conversion, Iran timezone support, Saturday week start, and Persian UI.
- * Version: 1.1.4
+ * Description: Convert WordPress dates to Jalali calendar with Gutenberg support and Persian digits.
+ * Version: 1.1.6
  * Author: mohammadr3z
  * Author URI: 
  * License: GPL2
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'PERSCA_PLUGIN_VERSION', '1.1.4' );
+define( 'PERSCA_PLUGIN_VERSION', '1.1.6' );
 define( 'PERSCA_PLUGIN_FILE', __FILE__ );
 define( 'PERSCA_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PERSCA_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

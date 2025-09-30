@@ -245,27 +245,27 @@ final class PERSCA_Admin {
         $fields = [
             'enable_jalali' => [
                 'label' => __( 'Jalali Calendar', 'persian-calendar' ),
-                'desc' => __( 'Enable Persian/Jalali calendar system for the entire website.', 'persian-calendar' ),
+                'desc' => __( 'Activate Persian/Jalali calendar system throughout your entire website.', 'persian-calendar' ),
                 'icon' => 'dashicons-calendar-alt',
             ],
             'enable_gutenberg_calendar' => [
                 'label' => __( 'Gutenberg Calendar', 'persian-calendar' ),
-                'desc' => __( 'Enable Persian calendar in Gutenberg editor.', 'persian-calendar' ),
+                'desc' => __( 'Integrate Persian calendar functionality within the Gutenberg editor.', 'persian-calendar' ),
                 'icon' => 'dashicons-edit',
             ],
             'regional_settings' => [
                 'label' => __( 'Regional Settings', 'persian-calendar' ),
-                'desc' => __( 'Set website timezone to Iran and start week from Saturday.', 'persian-calendar' ),
+                'desc' => __( 'Configure website timezone to Iran and set Saturday as the first day of the week.', 'persian-calendar' ),
                 'icon' => 'dashicons-admin-site-alt3',
             ],
             'enable_persian_digits' => [
                 'label' => __( 'Persian Digits', 'persian-calendar' ),
-                'desc' => __( 'Convert English digits to Persian digits in dates.', 'persian-calendar' ),
+                'desc' => __( 'Transform English numerals to Persian digits in all date displays.', 'persian-calendar' ),
                 'icon' => 'dashicons-editor-ol',
             ],
             'enable_dashboard_font' => [
                 'label' => __( 'Dashboard Font', 'persian-calendar' ),
-                'desc' => __( 'Apply clear and beautiful Persian font for WordPress dashboard.', 'persian-calendar' ),
+                'desc' => __( 'Apply elegant Persian typography to enhance WordPress dashboard readability.', 'persian-calendar' ),
                 'icon' => 'dashicons-editor-textcolor',
             ],
         ];
@@ -298,7 +298,7 @@ final class PERSCA_Admin {
                 <div class="persian-calendar-header-main">
                     <div class="persian-calendar-header-title">
                         <h4><?php esc_html_e( 'Persian Calendar Settings', 'persian-calendar' ); ?></h4>
-                <p><?php esc_html_e( 'Configure Persian calendar and digit conversion settings for your WordPress site', 'persian-calendar' ); ?></p>
+                <p><?php esc_html_e( 'Configure Persian calendar and digit conversion settings for your WordPress website', 'persian-calendar' ); ?></p>
                     </div>
                 </div>
                 <div class="persian-calendar-logo">
@@ -335,15 +335,15 @@ final class PERSCA_Admin {
                     <div class="persian-calendar-about">
                         <div class="persian-calendar-about-header">
                         </div>
-                        <p><?php esc_html_e( 'Persian Calendar plugin converts Gregorian dates to Persian/Jalali dates in WordPress.', 'persian-calendar' ); ?></p>
-                    <p><?php esc_html_e( 'Perfect for Persian websites', 'persian-calendar' ); ?></p>
+                        <p><?php esc_html_e( 'Persian Calendar plugin seamlessly converts Gregorian dates to Persian/Jalali dates throughout WordPress.', 'persian-calendar' ); ?></p>
+                    <p><?php esc_html_e( 'Designed specifically for Persian and Farsi websites.', 'persian-calendar' ); ?></p>
                     </div>
 
                     <!-- Premium Ad -->
                     <div class="persian-calendar-premium-ad">
                         <div class="premium-ad-content">
-                            <h5><?php esc_html_e( 'Need More Features?', 'persian-calendar' ); ?></h5>
-                        <p><?php esc_html_e( 'Access advanced Persian calendar features and premium support.', 'persian-calendar' ); ?></p>
+                            <h5><?php esc_html_e( 'Need Advanced Features?', 'persian-calendar' ); ?></h5>
+                        <p><?php esc_html_e( 'Unlock advanced Persian calendar features and receive premium support.', 'persian-calendar' ); ?></p>
                         <a href="<?php echo esc_url( '#' ); ?>" class="premium-ad-button"><?php esc_html_e( 'Learn More', 'persian-calendar' ); ?></a>
                         </div>
                     </div>
