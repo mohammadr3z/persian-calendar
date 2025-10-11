@@ -182,6 +182,7 @@ final class PERSCA_Admin {
             'regional_settings'    => true,
             'enable_dashboard_font' => true,
             'enable_gutenberg_calendar' => true,
+            'disable_gutenberg' => false,
 
         ];
     }
@@ -245,27 +246,32 @@ final class PERSCA_Admin {
         $fields = [
             'enable_jalali' => [
                 'label' => __( 'Jalali Calendar', 'persian-calendar' ),
-                'desc' => __( 'Activate Persian/Jalali calendar system throughout your entire website.', 'persian-calendar' ),
+                'desc' => esc_html__( 'Activate Persian/Jalali calendar system throughout your entire website.', 'persian-calendar' ),
                 'icon' => 'dashicons-calendar-alt',
-            ],
-            'enable_gutenberg_calendar' => [
-                'label' => __( 'Gutenberg Calendar', 'persian-calendar' ),
-                'desc' => __( 'Integrate Persian calendar functionality within the Gutenberg editor.', 'persian-calendar' ),
-                'icon' => 'dashicons-edit',
             ],
             'regional_settings' => [
                 'label' => __( 'Regional Settings', 'persian-calendar' ),
-                'desc' => __( 'Configure website timezone to Iran and set Saturday as the first day of the week.', 'persian-calendar' ),
+                'desc' => esc_html__( 'Configure website timezone to Iran and set Saturday as the first day of the week.', 'persian-calendar' ),
                 'icon' => 'dashicons-admin-site-alt3',
             ],
             'enable_persian_digits' => [
                 'label' => __( 'Persian Digits', 'persian-calendar' ),
-                'desc' => __( 'Transform English numerals to Persian digits in all date displays.', 'persian-calendar' ),
+                'desc' => esc_html__( 'Transform English numerals to Persian digits in all date displays.', 'persian-calendar' ),
                 'icon' => 'dashicons-editor-ol',
+            ],
+            'enable_gutenberg_calendar' => [
+                'label' => __( 'Gutenberg Calendar', 'persian-calendar' ),
+                'desc' => esc_html__( 'Integrate Persian calendar functionality within the Gutenberg editor.', 'persian-calendar' ),
+                'icon' => 'dashicons-edit',
+            ],
+            'disable_gutenberg' => [
+                'label' => __( 'Disable Gutenberg Editor', 'persian-calendar' ),
+                'desc' => esc_html__( 'Disable Gutenberg and enable classic editor.', 'persian-calendar' ),
+                'icon' => 'dashicons-editor-removeformatting',
             ],
             'enable_dashboard_font' => [
                 'label' => __( 'Dashboard Font', 'persian-calendar' ),
-                'desc' => __( 'Apply elegant Persian typography to enhance WordPress dashboard readability.', 'persian-calendar' ),
+                'desc' => esc_html__( 'Apply elegant Persian typography to enhance WordPress dashboard readability.', 'persian-calendar' ),
                 'icon' => 'dashicons-editor-textcolor',
             ],
         ];

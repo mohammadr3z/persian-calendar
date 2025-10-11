@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: Persian Calendar 1.1.6\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-17 10:41+0330\n"
-"PO-Revision-Date: 2025-09-29 17:02+0330\n"
+"PO-Revision-Date: 2025-10-11 10:11+0330\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -40,26 +40,34 @@ msgid "Integrate Persian calendar functionality within the Gutenberg editor."
 msgstr "یکپارچه‌سازی عملکرد تقویم شمسی در ویرایشگر گوتنبرگ."
 
 #: includes/class-persca-admin.php:257
+msgid "Disable Gutenberg Editor"
+msgstr "غیرفعال کردن ویرایشگر گوتنبرگ"
+
+#: includes/class-persca-admin.php:258
+msgid "Disable Gutenberg and enable classic editor."
+msgstr "غیرفعال کردن گوتنبرگ و فعال‌سازی ویرایشگر کلاسیک."
+
+#: includes/class-persca-admin.php:262
 msgid "Regional Settings"
 msgstr "تنظیمات منطقه‌ای"
 
-#: includes/class-persca-admin.php:258
+#: includes/class-persca-admin.php:263
 msgid "Configure website timezone to Iran and set Saturday as the first day of the week."
 msgstr "تنظیم منطقه زمانی وب‌سایت بر روی ایران و تعیین شنبه به عنوان اولین روز هفته."
 
-#: includes/class-persca-admin.php:262
+#: includes/class-persca-admin.php:267
 msgid "Persian Digits"
 msgstr "اعداد فارسی"
 
-#: includes/class-persca-admin.php:263
+#: includes/class-persca-admin.php:268
 msgid "Transform English numerals to Persian digits in all date displays."
 msgstr "تبدیل اعداد انگلیسی به ارقام فارسی در تمام نمایش‌های تاریخ."
 
-#: includes/class-persca-admin.php:267
+#: includes/class-persca-admin.php:272
 msgid "Dashboard Font"
 msgstr "فونت داشبورد"
 
-#: includes/class-persca-admin.php:268
+#: includes/class-persca-admin.php:273
 msgid "Apply elegant Persian typography to enhance WordPress dashboard readability."
 msgstr "اعمال تایپوگرافی زیبای فارسی برای بهبود خوانایی داشبورد وردپرس."
 
@@ -68,8 +76,7 @@ msgid "Persian Calendar Settings"
 msgstr "تنظیمات تقویم فارسی"
 
 #: includes/class-persca-admin.php:302
-msgid ""
-"Configure Persian calendar and digit conversion settings for your WordPress website"
+msgid "Configure Persian calendar and digit conversion settings for your WordPress website"
 msgstr "پیکربندی تنظیمات تقویم شمسی و تبدیل اعداد فارسی برای وب‌سایت وردپرس شما"
 
 #: includes/class-persca-admin.php:316
@@ -81,12 +88,8 @@ msgid "Save Changes"
 msgstr "ذخیره تنظیمات"
 
 #: includes/class-persca-admin.php:339
-msgid ""
-"Persian Calendar plugin seamlessly converts Gregorian dates to Persian/Jalali dates "
-"throughout WordPress."
-msgstr ""
-"افزونه تقویم فارسی به طور یکپارچه تاریخ‌های میلادی را به تاریخ‌های شمسی در تمام بخش‌های "
-"وردپرس تبدیل می‌کند."
+msgid "Persian Calendar plugin seamlessly converts Gregorian dates to Persian/Jalali dates throughout WordPress."
+msgstr "افزونه تقویم فارسی به طور یکپارچه تاریخ‌های میلادی را به تاریخ‌های شمسی در تمام بخش‌های وردپرس تبدیل می‌کند."
 
 #: includes/class-persca-admin.php:340
 msgid "Designed specifically for Persian and Farsi websites."

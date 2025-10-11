@@ -46,7 +46,10 @@ class PERSCA_Plugin {
         // Refresh settings cache with defaults fallback
         $this->settings = get_option( PERSCA_Admin::OPTIONS_KEY, PERSCA_Admin::get_default_settings() );
         
-
+        // Disable Gutenberg if option is enabled
+        if ( $this->is_setting_enabled( 'disable_gutenberg' ) ) {
+            $this->disable_gutenberg_editor();
+        }
 
         if ( $this->is_setting_enabled( 'regional_settings' ) ) {
             $this->maybe_set_tehran_timezone();
@@ -63,8 +66,8 @@ class PERSCA_Plugin {
             add_action( 'login_enqueue_scripts', [ $this, 'enqueue_dashboard_font' ] );
         }
 
-        // Enqueue Gutenberg calendar scripts and styles
-        if ( $this->is_setting_enabled( 'enable_jalali' ) && $this->is_setting_enabled( 'enable_gutenberg_calendar' ) ) {
+        // Enqueue Gutenberg calendar scripts and styles (only if Gutenberg is not disabled)
+        if ( $this->is_setting_enabled( 'enable_jalali' ) && $this->is_setting_enabled( 'enable_gutenberg_calendar' ) && ! $this->is_setting_enabled( 'disable_gutenberg' ) ) {
             add_action( 'enqueue_block_editor_assets', [ $this, 'enqueue_gutenberg_calendar_assets' ] );
             add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_gutenberg_calendar_assets' ] );
         }
@@ -304,6 +307,86 @@ class PERSCA_Plugin {
     }
 
 
+
+    /**
+     * Disable Gutenberg editor completely and enable classic editor.
+     * 
+     * This method removes all Gutenberg functionality and prevents
+     * any block editor scripts and styles from loading.
+     */
+    private function disable_gutenberg_editor() : void {
+        // Disable Gutenberg for posts
+        add_filter( 'use_block_editor_for_post', '__return_false', 10 );
+        
+        // Disable Gutenberg for post types
+        add_filter( 'use_block_editor_for_post_type', '__return_false', 10 );
+        
+        // Disable Gutenberg widgets
+        add_filter( 'use_widgets_block_editor', '__return_false' );
+        
+        // Remove Gutenberg CSS and JS from frontend
+        add_action( 'wp_enqueue_scripts', [ $this, 'remove_gutenberg_assets' ], 100 );
+        
+        // Remove Gutenberg CSS and JS from admin
+        add_action( 'admin_enqueue_scripts', [ $this, 'remove_gutenberg_assets' ], 100 );
+        
+        // Remove Gutenberg from admin menu
+        add_action( 'admin_menu', [ $this, 'remove_gutenberg_menu_items' ] );
+        
+        // Disable Gutenberg theme support
+        add_action( 'after_setup_theme', [ $this, 'remove_gutenberg_theme_support' ] );
+    }
+
+    /**
+     * Remove Gutenberg assets (CSS and JS files).
+     */
+    public function remove_gutenberg_assets() : void {
+        // Remove block editor styles
+        wp_dequeue_style( 'wp-block-library' );
+        wp_dequeue_style( 'wp-block-library-theme' );
+        wp_dequeue_style( 'wc-blocks-style' );
+        wp_dequeue_style( 'global-styles' );
+        wp_dequeue_style( 'classic-theme-styles' );
+        
+        // Remove block editor scripts
+        wp_dequeue_script( 'wp-block-library' );
+        wp_dequeue_script( 'wp-blocks' );
+        wp_dequeue_script( 'wp-editor' );
+        wp_dequeue_script( 'wp-edit-post' );
+        
+        // Remove additional Gutenberg styles
+        wp_deregister_style( 'wp-block-library' );
+        wp_deregister_style( 'wp-block-library-theme' );
+        wp_deregister_style( 'wc-blocks-style' );
+        wp_deregister_style( 'global-styles' );
+        wp_deregister_style( 'classic-theme-styles' );
+        
+        // Remove additional Gutenberg scripts
+        wp_deregister_script( 'wp-block-library' );
+        wp_deregister_script( 'wp-blocks' );
+        wp_deregister_script( 'wp-editor' );
+        wp_deregister_script( 'wp-edit-post' );
+    }
+
+    /**
+     * Remove Gutenberg-related menu items from admin.
+     */
+    public function remove_gutenberg_menu_items() : void {
+        // Remove block editor menu items if they exist
+        remove_menu_page( 'edit.php?post_type=wp_block' );
+        remove_submenu_page( 'themes.php', 'site-editor.php' );
+    }
+
+    /**
+     * Remove theme support for Gutenberg features.
+     */
+    public function remove_gutenberg_theme_support() : void {
+        // Remove theme support for various Gutenberg features
+        remove_theme_support( 'block-templates' );
+        remove_theme_support( 'block-template-parts' );
+        remove_theme_support( 'widgets-block-editor' );
+        remove_theme_support( 'core-block-patterns' );
+    }
 
     /**
      * Expose current settings for admin UI.

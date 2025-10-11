@@ -348,6 +348,44 @@ input:checked + .persian-calendar-slider:before {
     display: block;
 }
 
+/* Disabled field styling */
+.persian-calendar-settings-row.disabled-field {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.persian-calendar-settings-row.disabled-field .persian-calendar-toggle {
+    cursor: not-allowed;
+}
+
+/* Warning message styling */
+.persian-calendar-warning-message {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    color: #856404;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.persian-calendar-warning-message .dashicons {
+    color: #ffc107;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.disabled-field .persian-calendar-warning-message {
+    opacity: 1;
+}
+
+
 @media (max-width: 768px) {
     .persian-calendar-main {
         flex-direction: column;

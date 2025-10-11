@@ -78,3 +78,20 @@ html[dir="rtl"] .CodeMirror-lines *,
 html[dir="rtl"] .CodeMirror-lines span {
     font-family: monospace !important;
 }
+#adminmenu .wp-submenu li.current,
+#adminmenu .wp-submenu li.current a,
+#adminmenu .wp-submenu li.current a:hover,
+#comment-status-display,
+#dashboard_right_now .versions .b,
+#ed_reply_toolbar #ed_reply_strong,
+#pass-strength-result.short,
+#pass-strength-result.strong,
+#post-status-display,
+#post-visibility-display,
+.feature-filter .feature-name,
+.item-controls .item-order a,
+.media-item .percent,
+.plugins .name,b, strong,.row-title {
+    font-variation-settings: "wght" 650 !important;
+    font-weight: 400 !important;
+}
