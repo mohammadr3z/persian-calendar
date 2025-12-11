@@ -4,7 +4,7 @@ Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
 Tested up to: 6.8
 Requires PHP: 7.2
-Stable tag: 1.2.0
+Stable tag: 1.2.3.1
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,7 +22,6 @@ This plugin converts your WordPress to the Jalali (Persian) calendar system. All
 *   **Iran Timezone:** Tehran timezone support
 *   **Week Start:** Week starts on Saturday
 *   **Persian Font:** Persian font for WordPress admin
-*   **Disable Gutenberg:** Completely disable Gutenberg block editor and activate classic editor.
 
 == Installation ==
 
@@ -50,6 +49,20 @@ No, the plugin is optimized and has minimal impact on performance.
 4. Persian digit conversion
 
 == Changelog ==
+
+= 1.2.3.1 =
+* Fixed get_post_time filter breaking dashboard when timestamp format is requested
+
+= 1.2.3 =
+* Extended Jalali support: relative time, comments, post dates, admin date filter dropdown
+* Fixed timezone handling for correct time display
+* Fixed weekday calculation in Gutenberg calendar grid
+* Added year display to Gutenberg schedule button
+* Removed Classic Editor feature
+* Improved settings independence
+
+= 1.2.2 =
+* Improvement: Avoid conflicts with certain Gutenberg components — the plugin now enables the classic editor for posts only (using the `use_block_editor_for_post` filter) and leaves other Gutenberg functionality unchanged.
 
 = 1.2.0 =
 * Added option to completely disable Gutenberg block editor and activate classic editor.

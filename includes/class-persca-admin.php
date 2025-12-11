@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Admin interface functionality for Persian Calendar plugin.
  *
@@ -10,7 +11,7 @@
  */
 
 // Prevent direct access
-if ( ! defined( 'ABSPATH' ) ) {
+if (! defined('ABSPATH')) {
     exit;
 }
 
@@ -22,7 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 1.0.0
  */
-final class PERSCA_Admin {
+final class PERSCA_Admin
+{
     /**
      * Plugin options key.
      *
@@ -42,7 +44,8 @@ final class PERSCA_Admin {
      *
      * @param PERSCA_Plugin|null $plugin Plugin instance.
      */
-    public function __construct( $plugin = null ) {
+    public function __construct($plugin = null)
+    {
         $this->plugin = $plugin;
     }
 
@@ -51,10 +54,11 @@ final class PERSCA_Admin {
      *
      * @since 1.0.0
      */
-    public function init() : void {
-        add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
-        add_action( 'admin_init', [ $this, 'register_settings' ] );
-        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_styles' ] );
+    public function init(): void
+    {
+        add_action('admin_menu', [$this, 'add_settings_page']);
+        add_action('admin_init', [$this, 'register_settings']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_styles']);
     }
 
     /**
@@ -62,11 +66,12 @@ final class PERSCA_Admin {
      *
      * @since 1.0.0
      */
-    public function enqueue_admin_styles( $hook ) : void {
-        if ( 'settings_page_persian-calendar' !== $hook ) {
+    public function enqueue_admin_styles($hook): void
+    {
+        if ('settings_page_persian-calendar' !== $hook) {
             return;
         }
-        wp_enqueue_style( 'dashicons' );
+        wp_enqueue_style('dashicons');
         wp_enqueue_style(
             'persian-calendar-admin',
             PERSCA_PLUGIN_URL . 'assets/css/admin.css',
@@ -80,13 +85,14 @@ final class PERSCA_Admin {
      *
      * @since 1.0.0
      */
-    public function add_settings_page() : void {
+    public function add_settings_page(): void
+    {
         add_options_page(
-            __( 'Persian Calendar Settings', 'persian-calendar' ),
-			__( 'Persian Calendar', 'persian-calendar' ),
+            __('Persian Calendar Settings', 'persian-calendar'),
+            __('Persian Calendar', 'persian-calendar'),
             'manage_options',
             'persian-calendar',
-            [ $this, 'render_settings_page' ]
+            [$this, 'render_settings_page']
         );
     }
 
@@ -95,21 +101,20 @@ final class PERSCA_Admin {
      *
      * @since 1.0.0
      */
-    public function register_settings() : void {
-        register_setting( 'persca_settings', self::OPTIONS_KEY, [ $this, 'sanitize_options' ] );
+    public function register_settings(): void
+    {
+        register_setting('persca_settings', self::OPTIONS_KEY, [$this, 'sanitize_options']);
 
         add_settings_section(
             'persca_main',
-            __( 'General Settings', 'persian-calendar' ),
-            function() {
-                echo '<p>' . esc_html__( 'Configure Persian calendar conversion and Persian digit settings.', 'persian-calendar' ) . '</p>';
+            __('General Settings', 'persian-calendar'),
+            function () {
+                echo '<p>' . esc_html__('Configure Persian calendar conversion and Persian digit settings.', 'persian-calendar') . '</p>';
             },
             'persian-calendar'
         );
 
         // Settings fields are rendered manually in render_settings_fields() method
-
-
     }
 
     /**
@@ -120,54 +125,48 @@ final class PERSCA_Admin {
      * @param array $input Raw input array.
      * @return array       Cleaned options array.
      */
-    public function sanitize_options( $input ) : array {
-        $defaults = $this->get_default_options();
-        
+    public function sanitize_options($input): array
+    {
+        $defaults = self::get_default_settings();
+
         // Check user permissions
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if (! current_user_can('manage_options')) {
             add_settings_error(
                 self::OPTIONS_KEY,
                 'permission_denied',
-                __( 'You do not have permission to change these settings.', 'persian-calendar' ),
+                __('You do not have permission to change these settings.', 'persian-calendar'),
                 'error'
             );
             return $defaults;
         }
-        
+
         // Validate input is array
-        if ( ! is_array( $input ) ) {
+        if (! is_array($input)) {
             return $defaults;
         }
-        
+
         // Verify nonce for security
-        if ( ! isset( $_POST['persca_nonce'] ) ||
-            ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['persca_nonce'] ) ), 'persca_settings' ) ) {
+        if (
+            ! isset($_POST['persca_nonce']) ||
+            ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['persca_nonce'])), 'persca_settings')
+        ) {
             add_settings_error(
                 self::OPTIONS_KEY,
                 'nonce_failed',
-                __( 'Security error: Invalid request.', 'persian-calendar' ),
+                __('Security error: Invalid request.', 'persian-calendar'),
                 'error'
             );
             return $defaults;
         }
-        
-        $out = [];
-        foreach ( $defaults as $key => $def ) {
-            // Sanitize and validate each option
-            $value = isset( $input[$key] ) ? sanitize_key( $input[$key] ) : '';
-            $out[$key] = ! empty( $value ) ? (bool) $value : false;
-        }
-        
-        return wp_parse_args( $out, $defaults );
-    }
 
-    /**
-     * Get default options.
-     *
-     * @return array
-     */
-    private function get_default_options() : array {
-        return self::get_default_settings();
+        $out = [];
+        foreach ($defaults as $key => $def) {
+            // Sanitize and validate each option
+            $value = isset($input[$key]) ? sanitize_key($input[$key]) : '';
+            $out[$key] = ! empty($value) ? (bool) $value : false;
+        }
+
+        return wp_parse_args($out, $defaults);
     }
 
     /**
@@ -175,15 +174,14 @@ final class PERSCA_Admin {
      *
      * @return array
      */
-    public static function get_default_settings() : array {
+    public static function get_default_settings(): array
+    {
         return [
             'enable_jalali'        => true,
-            'enable_persian_digits' => false,
+            'enable_persian_digits' => true,
             'regional_settings'    => true,
             'enable_dashboard_font' => true,
             'enable_gutenberg_calendar' => true,
-            'disable_gutenberg' => false,
-
         ];
     }
 
@@ -194,8 +192,9 @@ final class PERSCA_Admin {
      * @param string $key Option key to check.
      * @return bool True if option is enabled, false otherwise.
      */
-    private function is_option_enabled( array $options, string $key ) : bool {
-        return ! empty( $options[$key] );
+    private function is_option_enabled(array $options, string $key): bool
+    {
+        return ! empty($options[$key]);
     }
 
     /**
@@ -205,29 +204,56 @@ final class PERSCA_Admin {
      *
      * @param array $args Field args: option key and description.
      */
-    public function checkbox_field( array $args ) : void {
+    public function checkbox_field(array $args): void
+    {
         // Check user permissions before rendering admin fields
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if (! current_user_can('manage_options')) {
             return;
         }
-        
-        $opts = get_option( self::OPTIONS_KEY, $this->get_default_options() );
+
+        $opts = get_option(self::OPTIONS_KEY, self::get_default_settings());
+        $opts = wp_parse_args($opts, self::get_default_settings());
         $key  = $args['option'];
-        $icon = isset( $args['icon'] ) ? '<span class="dashicons ' . esc_attr( $args['icon'] ) . '"></span>' : '<span class="dashicons dashicons-admin-generic"></span>';
-        $label = isset( $args['label'] ) ? $args['label'] : '';
-        
-        echo '<div class="persian-calendar-settings-row">';
-        echo '<div class="persian-calendar-settings-icon">' . wp_kses_post( $icon ) . '</div>';
+        $icon = isset($args['icon']) ? '<span class="dashicons ' . esc_attr($args['icon']) . '"></span>' : '<span class="dashicons dashicons-admin-generic"></span>';
+        $label = isset($args['label']) ? $args['label'] : '';
+
+        // Check if this field should be disabled by another field
+        $disabled_by = isset($args['disabled_by']) ? $args['disabled_by'] : null;
+        $is_disabled = false;
+        $disabled_message = '';
+
+        if ($disabled_by && isset($opts[$disabled_by['option']]) && $opts[$disabled_by['option']]) {
+            $is_disabled = true;
+            $disabled_message = isset($disabled_by['message']) ? $disabled_by['message'] : '';
+        }
+
+        $row_class = 'persian-calendar-settings-row';
+        if ($is_disabled) {
+            $row_class .= ' persian-calendar-row-disabled';
+        }
+
+        echo '<div class="' . esc_attr($row_class) . '">';
+
+        // Overlay for disabled state
+        if ($is_disabled) {
+            echo '<div class="persian-calendar-disabled-overlay">';
+            echo '<span class="dashicons dashicons-lock"></span>';
+            echo '<span class="persian-calendar-disabled-message">' . esc_html($disabled_message) . '</span>';
+            echo '</div>';
+        }
+
+        echo '<div class="persian-calendar-settings-icon">' . wp_kses_post($icon) . '</div>';
         echo '<div class="persian-calendar-settings-content">';
-        echo '<div class="persian-calendar-settings-title">' . esc_html( $label ) . '</div>';
-        echo '<p class="persian-calendar-settings-description">' . esc_html( $args['desc'] ) . '</p>';
+        echo '<div class="persian-calendar-settings-title">' . esc_html($label) . '</div>';
+        echo '<p class="persian-calendar-settings-description">' . esc_html($args['desc']) . '</p>';
         echo '</div>';
         echo '<div class="persian-calendar-settings-control">';
         echo '<label class="persian-calendar-toggle">';
         printf(
-            '<input type="checkbox" id="%1$s" name="' . esc_attr( self::OPTIONS_KEY ) . '[%1$s]" value="1" %2$s/>',
-            esc_attr( $key ),
-            checked( $this->is_option_enabled( $opts, $key ), true, false )
+            '<input type="checkbox" id="%1$s" name="' . esc_attr(self::OPTIONS_KEY) . '[%1$s]" value="1" %2$s %3$s/>',
+            esc_attr($key),
+            checked($this->is_option_enabled($opts, $key), true, false),
+            $is_disabled ? 'disabled' : ''
         );
         echo '<span class="persian-calendar-slider"></span>';
         echo '</label>';
@@ -235,48 +261,42 @@ final class PERSCA_Admin {
         echo '</div>';
     }
 
-
-
     /**
      * Render settings fields manually.
      *
      * @since 1.0.0
      */
-    private function render_settings_fields() : void {
+    private function render_settings_fields(): void
+    {
         $fields = [
             'enable_jalali' => [
-                'label' => __( 'Jalali Calendar', 'persian-calendar' ),
-                'desc' => esc_html__( 'Activate Persian/Jalali calendar system throughout your entire website.', 'persian-calendar' ),
+                'label' => __('Jalali Calendar', 'persian-calendar'),
+                'desc' => __('Activate Persian/Jalali calendar system throughout your entire website.', 'persian-calendar'),
                 'icon' => 'dashicons-calendar-alt',
             ],
             'regional_settings' => [
-                'label' => __( 'Regional Settings', 'persian-calendar' ),
-                'desc' => esc_html__( 'Configure website timezone to Iran and set Saturday as the first day of the week.', 'persian-calendar' ),
+                'label' => __('Regional Settings', 'persian-calendar'),
+                'desc' => __('Configure website timezone to Iran and set Saturday as the first day of the week.', 'persian-calendar'),
                 'icon' => 'dashicons-admin-site-alt3',
             ],
             'enable_persian_digits' => [
-                'label' => __( 'Persian Digits', 'persian-calendar' ),
-                'desc' => esc_html__( 'Transform English numerals to Persian digits in all date displays.', 'persian-calendar' ),
+                'label' => __('Persian Digits', 'persian-calendar'),
+                'desc' => __('Transform English numerals to Persian digits in all date displays.', 'persian-calendar'),
                 'icon' => 'dashicons-editor-ol',
             ],
             'enable_gutenberg_calendar' => [
-                'label' => __( 'Gutenberg Calendar', 'persian-calendar' ),
-                'desc' => esc_html__( 'Integrate Persian calendar functionality within the Gutenberg editor.', 'persian-calendar' ),
+                'label' => __('Gutenberg Calendar', 'persian-calendar'),
+                'desc' => __('Integrate Persian calendar functionality within the Gutenberg editor.', 'persian-calendar'),
                 'icon' => 'dashicons-edit',
             ],
-            'disable_gutenberg' => [
-                'label' => __( 'Disable Gutenberg Editor', 'persian-calendar' ),
-                'desc' => esc_html__( 'Disable Gutenberg and enable classic editor.', 'persian-calendar' ),
-                'icon' => 'dashicons-editor-removeformatting',
-            ],
             'enable_dashboard_font' => [
-                'label' => __( 'Dashboard Font', 'persian-calendar' ),
-                'desc' => esc_html__( 'Apply elegant Persian typography to enhance WordPress dashboard readability.', 'persian-calendar' ),
+                'label' => __('Dashboard Font', 'persian-calendar'),
+                'desc' => __('Apply elegant Persian typography to enhance WordPress dashboard readability.', 'persian-calendar'),
                 'icon' => 'dashicons-editor-textcolor',
             ],
         ];
 
-        foreach ( $fields as $option => $field_data ) {
+        foreach ($fields as $option => $field_data) {
             $field_args = [
                 'label_for' => $option,
                 'option'    => $option,
@@ -284,7 +304,13 @@ final class PERSCA_Admin {
                 'desc'      => $field_data['desc'],
                 'icon'      => $field_data['icon'],
             ];
-            $this->checkbox_field( $field_args );
+
+            // Add disabled_by if exists
+            if (isset($field_data['disabled_by'])) {
+                $field_args['disabled_by'] = $field_data['disabled_by'];
+            }
+
+            $this->checkbox_field($field_args);
         }
     }
 
@@ -293,18 +319,19 @@ final class PERSCA_Admin {
      *
      * @since 1.0.0
      */
-    public function render_settings_page() : void {
-        if ( ! current_user_can( 'manage_options' ) ) {
+    public function render_settings_page(): void
+    {
+        if (! current_user_can('manage_options')) {
             return;
         }
-        ?>
+?>
         <div class="persian-calendar-settings">
             <!-- Header -->
             <div class="persian-calendar-header">
                 <div class="persian-calendar-header-main">
                     <div class="persian-calendar-header-title">
-                        <h4><?php esc_html_e( 'Persian Calendar Settings', 'persian-calendar' ); ?></h4>
-                <p><?php esc_html_e( 'Configure Persian calendar and digit conversion settings for your WordPress website', 'persian-calendar' ); ?></p>
+                        <h4><?php esc_html_e('Persian Calendar Settings', 'persian-calendar'); ?></h4>
+                        <p><?php esc_html_e('Configure Persian calendar and digit conversion settings for your WordPress website', 'persian-calendar'); ?></p>
                     </div>
                 </div>
                 <div class="persian-calendar-logo">
@@ -318,20 +345,20 @@ final class PERSCA_Admin {
                 <div class="persian-calendar-content">
                     <div class="persian-calendar-card">
                         <div class="persian-calendar-card-header">
-                            <h4><?php esc_html_e( 'General Settings', 'persian-calendar' ); ?></h4>
+                            <h4><?php esc_html_e('General Settings', 'persian-calendar'); ?></h4>
                         </div>
                         <div class="persian-calendar-card-body">
                             <form id="persian-calendar-form" method="post" action="options.php">
                                 <?php
-                                settings_fields( 'persca_settings' );
-                        wp_nonce_field( 'persca_settings', 'persca_nonce' );
+                                settings_fields('persca_settings');
+                                wp_nonce_field('persca_settings', 'persca_nonce');
                                 $this->render_settings_fields();
                                 ?>
                             </form>
                         </div>
                     </div>
                     <button type="submit" form="persian-calendar-form" class="persian-calendar-submit">
-                        <?php esc_html_e( 'Save Changes', 'persian-calendar' ); ?>
+                        <?php esc_html_e('Save Changes', 'persian-calendar'); ?>
                     </button>
                 </div>
 
@@ -341,21 +368,21 @@ final class PERSCA_Admin {
                     <div class="persian-calendar-about">
                         <div class="persian-calendar-about-header">
                         </div>
-                        <p><?php esc_html_e( 'Persian Calendar plugin seamlessly converts Gregorian dates to Persian/Jalali dates throughout WordPress.', 'persian-calendar' ); ?></p>
-                    <p><?php esc_html_e( 'Designed specifically for Persian and Farsi websites.', 'persian-calendar' ); ?></p>
+                        <p><?php esc_html_e('Persian Calendar plugin seamlessly converts Gregorian dates to Persian/Jalali dates throughout WordPress.', 'persian-calendar'); ?></p>
+                        <p><?php esc_html_e('Designed specifically for Persian and Farsi websites.', 'persian-calendar'); ?></p>
                     </div>
 
                     <!-- Premium Ad -->
                     <div class="persian-calendar-premium-ad">
                         <div class="premium-ad-content">
-                            <h5><?php esc_html_e( 'Need Advanced Features?', 'persian-calendar' ); ?></h5>
-                        <p><?php esc_html_e( 'Unlock advanced Persian calendar features and receive premium support.', 'persian-calendar' ); ?></p>
-                        <a href="<?php echo esc_url( '#' ); ?>" class="premium-ad-button"><?php esc_html_e( 'Learn More', 'persian-calendar' ); ?></a>
+                            <h5><?php esc_html_e('Need Advanced Features?', 'persian-calendar'); ?></h5>
+                            <p><?php esc_html_e('Unlock advanced Persian calendar features and receive premium support.', 'persian-calendar'); ?></p>
+                            <a href="<?php echo esc_url('#'); ?>" class="premium-ad-button"><?php esc_html_e('Learn More', 'persian-calendar'); ?></a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <?php
+<?php
     }
 }

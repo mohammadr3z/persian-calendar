@@ -1,4 +1,4 @@
-/* global PerscaSettings, wp */
+/* Persian Calendar Component */
 (function () {
   'use strict';
 
@@ -30,7 +30,7 @@
 
     const gy2 = gm > 2 ? gy : gy - 1;
     let days = JALALI_EPOCH_DIFFERENCE + (365 * gy2) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) + gd + G_DAYS_IN_MONTH_NON_LEAP[gm - 1];
-    
+
     let jy = JALALI_YEAR_START_OFFSET + 33 * Math.floor(days / JALALI_33_YEAR_CYCLE_DAYS);
     days %= JALALI_33_YEAR_CYCLE_DAYS;
 
@@ -71,7 +71,7 @@
 
     const jy_adj = jy + 1595;
     let days = GREGORIAN_EPOCH_DIFFERENCE + (365 * jy_adj) + (Math.floor(jy_adj / 33) * JALALI_33_YEAR_CYCLE_LEAP_DAYS) + Math.floor(((jy_adj % 33) + 3) / 4) + jd;
-    
+
     if (jm < 7) {
       days += (jm - 1) * 31;
     } else {
@@ -98,7 +98,7 @@
     let gd = days + 1;
     const isLeap = ((gy % 4 === 0) && (gy % 100 !== 0)) || (gy % 400 === 0);
     const G_DAYS_IN_MONTH = [0, 31, isLeap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    
+
     let gm;
     for (gm = 1; gm <= 12; gm++) {
       if (gd <= G_DAYS_IN_MONTH[gm]) break;
@@ -144,22 +144,28 @@
       this.container = container;
       this.options = {
         selectedDate: (options.selectedDate instanceof Date) ? options.selectedDate : new Date(),
-        onDateSelect: (typeof options.onDateSelect === 'function') ? options.onDateSelect : () => {},
+        onDateSelect: (typeof options.onDateSelect === 'function') ? options.onDateSelect : () => { },
         showTime: (typeof options.showTime === 'boolean') ? options.showTime : true,
         ...options
       };
-      
-      const initialDate = this.options.selectedDate;
+
+      let initialDate = this.options.selectedDate;
+
+      // Apply Iran timezone offset (+3:30 = 210 minutes)
+      const iranOffsetMinutes = 210;
+      const browserOffsetMinutes = -initialDate.getTimezoneOffset();
+      const diffMinutes = iranOffsetMinutes - browserOffsetMinutes;
+      initialDate = new Date(initialDate.getTime() + diffMinutes * 60 * 1000);
+
       const [jy, jm, jd] = gregorianToJalali(initialDate.getFullYear(), initialDate.getMonth() + 1, initialDate.getDate());
       this.currentYear = jy;
       this.currentMonth = jm;
       this.selectedDate = { year: jy, month: jm, day: jd };
-      this.selectedTime = { 
-        hour: initialDate.getHours(), 
-        minute: initialDate.getMinutes(), 
-        ampm: initialDate.getHours() < 12 ? 'ق.ظ' : 'ب.ظ' 
+      this.selectedTime = {
+        hour: initialDate.getHours(),
+        minute: initialDate.getMinutes()
       };
-      
+
       this.render();
       this.attachEventListeners();
     }
@@ -187,72 +193,66 @@
     createCalendarElement() {
       const wrapper = document.createElement('div');
       wrapper.className = 'persian-calendar-wrapper';
-      
+
       // Header
       const header = document.createElement('div');
       header.className = 'persian-calendar-header';
       header.innerHTML = '<h3 class="persian-calendar-title">انتشار</h3><button class="persian-calendar-now-btn" type="button">اکنون</button>';
       wrapper.appendChild(header);
-      
+
       // Time picker
       if (this.options.showTime) {
         wrapper.appendChild(this.createTimePickerElement());
       }
-      
+
       // Date picker
       wrapper.appendChild(this.createDatePickerElement());
-      
+
       return wrapper;
     }
-    
+
     createTimePickerElement() {
-      const hour12 = this.selectedTime.hour > 12 ? this.selectedTime.hour - 12 : (this.selectedTime.hour === 0 ? 12 : this.selectedTime.hour);
-      
       const fragment = document.createDocumentFragment();
       const timeTitle = document.createElement('div');
       timeTitle.className = 'persian-calendar-time-title';
       timeTitle.textContent = 'زمان';
-      
+
       const timeContainer = document.createElement('div');
       timeContainer.className = 'persian-calendar-time';
       timeContainer.innerHTML = `
         <div class="persian-calendar-time-inputs">
-          <input type="number" class="persian-calendar-hour" min="1" max="12" value="${hour12}">
+          <input type="number" class="persian-calendar-hour" min="0" max="23" value="${this.selectedTime.hour.toString().padStart(2, '0')}">
           <span>:</span>
           <input type="number" class="persian-calendar-minute" min="0" max="59" value="${this.selectedTime.minute.toString().padStart(2, '0')}">
         </div>
-        <div class="persian-calendar-ampm">
-          <button class="persian-calendar-ampm-btn${this.selectedTime.ampm === 'ق.ظ' ? ' active' : ''}" data-ampm="ق.ظ" type="button">ق.ظ</button>
-          <button class="persian-calendar-ampm-btn${this.selectedTime.ampm === 'ب.ظ' ? ' active' : ''}" data-ampm="ب.ظ" type="button">ب.ظ</button>
-        </div>
       `;
-      
+
       fragment.appendChild(timeTitle);
       fragment.appendChild(timeContainer);
       return fragment;
     }
-    
+
     createDatePickerElement() {
       const datePicker = document.createElement('div');
       datePicker.className = 'persian-calendar-date-picker';
-      
+
       const dateTitle = document.createElement('div');
       dateTitle.className = 'persian-calendar-date-title';
       dateTitle.textContent = 'تاریخ';
-      
+
       // Month/Year inputs
       const monthYear = document.createElement('div');
       monthYear.className = 'persian-calendar-month-year';
       monthYear.innerHTML = `
         <input type="text" class="persian-calendar-day-display" value="${toPersianDigits(this.selectedDate.day)}" maxlength="2">
         <select class="persian-calendar-month">
-          ${PERSIAN_MONTHS.map((month, index) => 
-            `<option value="${index + 1}"${(index + 1) === this.currentMonth ? ' selected' : ''}>${month}</option>`
-          ).join('')}
+          ${PERSIAN_MONTHS.map((month, index) =>
+        `<option value="${index + 1}"${(index + 1) === this.currentMonth ? ' selected' : ''}>${month}</option>`
+      ).join('')}
         </select>
         <input type="text" class="persian-calendar-year-display" value="${toPersianDigits(this.currentYear)}" maxlength="4">
       `;
-      
+
       // Navigation
       const nav = document.createElement('div');
       nav.className = 'persian-calendar-nav';
@@ -261,7 +261,7 @@
         <span class="persian-calendar-current-month">${PERSIAN_MONTHS[this.currentMonth - 1]} ${toPersianDigits(this.currentYear)}</span>
         <button class="persian-calendar-next" type="button">›</button>
       `;
-      
+
       // Calendar grid
       const grid = document.createElement('div');
       grid.className = 'persian-calendar-grid';
@@ -271,47 +271,53 @@
         </div>
         <div class="persian-calendar-days"></div>
       `;
-      
+
       datePicker.appendChild(dateTitle);
       datePicker.appendChild(monthYear);
       datePicker.appendChild(nav);
       datePicker.appendChild(grid);
-      
+
       return datePicker;
     }
 
     createDaysFragment() {
       const daysInMonth = getDaysInJalaliMonth(this.currentYear, this.currentMonth);
+      // Get weekday for first day of month
+      // JavaScript getDay(): Sunday=0, Monday=1, ..., Saturday=6
+      // Persian calendar grid: Saturday=0, Sunday=1, ..., Friday=6
+      // Convert: Saturday(6)->0, Sunday(0)->1, Monday(1)->2, ..., Friday(5)->6
       const [gy, gm, gd] = jalaliToGregorian(this.currentYear, this.currentMonth, 1);
-      const startDay = (new Date(gy, gm - 1, gd).getDay() + 1) % 7;
-      
+      const jsDay = new Date(gy, gm - 1, gd).getDay();
+      // Formula: (jsDay + 2) % 7 gives correct Persian weekday index
+      const startDay = (jsDay + 2) % 7;
+
       const today = new Date();
       const [todayJy, todayJm, todayJd] = gregorianToJalali(today.getFullYear(), today.getMonth() + 1, today.getDate());
       const isTodayMonth = (this.currentMonth === todayJm && this.currentYear === todayJy);
       const isSelectedMonth = (this.currentMonth === this.selectedDate.month && this.currentYear === this.selectedDate.year);
-      
+
       const fragment = document.createDocumentFragment();
-      
+
       // Empty days
       for (let i = 0; i < startDay; i++) {
         const emptyDay = document.createElement('div');
         emptyDay.className = 'persian-calendar-day empty';
         fragment.appendChild(emptyDay);
       }
-      
+
       // Month days
       for (let day = 1; day <= daysInMonth; day++) {
         const dayElement = document.createElement('div');
         dayElement.className = 'persian-calendar-day';
         dayElement.setAttribute('data-day', day.toString());
         dayElement.textContent = toPersianDigits(day);
-        
+
         if (isTodayMonth && day === todayJd) dayElement.classList.add('today');
         if (isSelectedMonth && day === this.selectedDate.day) dayElement.classList.add('selected');
-        
+
         fragment.appendChild(dayElement);
       }
-      
+
       return fragment;
     }
 
@@ -329,14 +335,6 @@
           this.nextMonth();
         } else if (target.matches('.persian-calendar-now-btn')) {
           this.setToNow();
-        } else if (target.matches('.persian-calendar-ampm-btn')) {
-          this.selectedTime.ampm = target.dataset.ampm;
-          let hour = this.selectedTime.hour;
-          if (target.dataset.ampm === 'ب.ظ' && hour < 12) hour += 12;
-          if (target.dataset.ampm === 'ق.ظ' && hour >= 12) hour -= 12;
-          this.selectedTime.hour = hour;
-          this.updateTimeDisplay();
-          this.notifyDateChange();
         }
       });
 
@@ -389,11 +387,8 @@
 
       if (this.options.showTime && this.dom.hourInput && this.dom.minuteInput) {
         setupInput(this.dom.hourInput, (e) => {
-          const hour = safeParseInt(e.target.value, 1, 1, 12);
-          let actualHour = hour;
-          if (this.selectedTime.ampm === 'ب.ظ' && hour !== 12) actualHour += 12;
-          if (this.selectedTime.ampm === 'ق.ظ' && hour === 12) actualHour = 0;
-          this.selectedTime.hour = actualHour;
+          const hour = safeParseInt(e.target.value, 0, 0, 23);
+          this.selectedTime.hour = hour;
           this.notifyDateChange();
         });
 
@@ -430,18 +425,25 @@
     }
 
     setToNow() {
-      const now = new Date();
+      // Get current time adjusted for Iran timezone (+3:30)
+      let now = new Date();
+
+      // Apply Iran timezone offset (210 minutes = +3:30)
+      const iranOffsetMinutes = 210;
+      const browserOffsetMinutes = -now.getTimezoneOffset();
+      const diffMinutes = iranOffsetMinutes - browserOffsetMinutes;
+      now = new Date(now.getTime() + diffMinutes * 60 * 1000);
+
       const [jy, jm, jd] = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
-      
+
       this.currentYear = jy;
       this.currentMonth = jm;
       this.selectedDate = { year: jy, month: jm, day: jd };
-      this.selectedTime = { 
-        hour: now.getHours(), 
-        minute: now.getMinutes(), 
-        ampm: now.getHours() < 12 ? 'ق.ظ' : 'ب.ظ' 
+      this.selectedTime = {
+        hour: now.getHours(),
+        minute: now.getMinutes()
       };
-      
+
       this.updateCalendarView();
       this.updateTimeDisplay();
       this.notifyDateChange();
@@ -452,7 +454,7 @@
       if (this.dom.dayInput) this.dom.dayInput.value = toPersianDigits(this.selectedDate.day);
       if (this.dom.yearInput) this.dom.yearInput.value = toPersianDigits(this.currentYear);
       if (this.dom.currentMonthText) this.dom.currentMonthText.textContent = `${PERSIAN_MONTHS[this.currentMonth - 1]} ${toPersianDigits(this.currentYear)}`;
-      
+
       if (this.dom.daysContainer) {
         this.dom.daysContainer.textContent = '';
         this.dom.daysContainer.appendChild(this.createDaysFragment());
@@ -461,20 +463,15 @@
 
     updateTimeDisplay() {
       if (!this.options.showTime) return;
-      
-      const hour12 = this.selectedTime.hour > 12 ? this.selectedTime.hour - 12 : (this.selectedTime.hour === 0 ? 12 : this.selectedTime.hour);
-      this.container.querySelector('.persian-calendar-hour').value = hour12;
+
+      this.container.querySelector('.persian-calendar-hour').value = this.selectedTime.hour.toString().padStart(2, '0');
       this.container.querySelector('.persian-calendar-minute').value = this.selectedTime.minute.toString().padStart(2, '0');
-      
-      this.container.querySelectorAll('.persian-calendar-ampm-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.ampm === this.selectedTime.ampm);
-      });
     }
 
     notifyDateChange() {
       const [gy, gm, gd] = jalaliToGregorian(this.selectedDate.year, this.selectedDate.month, this.selectedDate.day);
       const gregorianDate = new Date(gy, gm - 1, gd, this.selectedTime.hour, this.selectedTime.minute);
-      
+
       this.options.onDateSelect({
         jalali: this.selectedDate,
         gregorian: { year: gy, month: gm, day: gd },

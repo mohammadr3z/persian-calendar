@@ -78,6 +78,10 @@ html[dir="rtl"] .CodeMirror-lines *,
 html[dir="rtl"] .CodeMirror-lines span {
     font-family: monospace !important;
 }
+.plugins .inactive .plugin-title strong {
+    font-weight: 400 !important;
+    font-variation-settings: "wght" 400 !important;
+}
 #adminmenu .wp-submenu li.current,
 #adminmenu .wp-submenu li.current a,
 #adminmenu .wp-submenu li.current a:hover,
@@ -91,7 +95,12 @@ html[dir="rtl"] .CodeMirror-lines span {
 .feature-filter .feature-name,
 .item-controls .item-order a,
 .media-item .percent,
-.plugins .name,b, strong,.row-title {
+.plugins .name,
+.row-title,
+.plugin-title strong,
+#editable-post-name,
+.post-state,
+h1.wp-heading-inline{
     font-variation-settings: "wght" 650 !important;
     font-weight: 400 !important;
 }

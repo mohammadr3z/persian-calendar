@@ -385,6 +385,40 @@ input:checked + .persian-calendar-slider:before {
     opacity: 1;
 }
 
+/* Disabled row with overlay */
+.persian-calendar-row-disabled {
+    position: relative;
+}
+
+.persian-calendar-disabled-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    z-index: 10;
+    border-radius: 4px;
+    cursor: not-allowed;
+}
+
+.persian-calendar-disabled-overlay .dashicons {
+    color: #a4afb7;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.persian-calendar-disabled-message {
+    color: #6d7882;
+    font-size: 13px;
+    font-weight: 500;
+}
+
 
 @media (max-width: 768px) {
     .persian-calendar-main {

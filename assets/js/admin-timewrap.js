@@ -1,4 +1,4 @@
-jQuery(document).ready(function() {
+jQuery(document).ready(function () {
 
     // Input validation and safe parsing functions
     function safeParseInt(value, defaultValue = 0, min = null, max = null) {
@@ -16,21 +16,16 @@ jQuery(document).ready(function() {
     }
 
     function isValidDate(year, month, day) {
-        return year >= 1 && year <= 3000 && 
-               month >= 1 && month <= 12 && 
-               day >= 1 && day <= 31;
-    }
-
-    function isValidTime(hour, minute) {
-        return hour >= 0 && hour <= 23 && 
-               minute >= 0 && minute <= 59;
+        return year >= 1 && year <= 3000 &&
+            month >= 1 && month <= 12 &&
+            day >= 1 && day <= 31;
     }
 
     function gregorian_to_jalali(gy, gm, gd) {
         gy = safeParseInt(gy, 1400, 1, 3000);
         gm = safeParseInt(gm, 1, 1, 12);
         gd = safeParseInt(gd, 1, 1, 31);
-        
+
         if (!isValidDate(gy, gm, gd)) {
             return ['1400', '01', '01']; // Return safe default
         }
@@ -45,10 +40,10 @@ jQuery(document).ready(function() {
         jy += 4 * Math.floor(days / 1461);
         days %= 1461;
         jy += Math.floor((days - 1) / 365);
-        if (days > 365)days = (days - 1) % 365;
+        if (days > 365) days = (days - 1) % 365;
         jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
         jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
-        if (jm < 10)jm = '0' + String(jm);
+        if (jm < 10) jm = '0' + String(jm);
         return [String(jy), String(jm), String(jd)];
     }
 
@@ -56,7 +51,7 @@ jQuery(document).ready(function() {
         jy = safeParseInt(jy, 1400, 1, 3000);
         jm = safeParseInt(jm, 1, 1, 12);
         jd = safeParseInt(jd, 1, 1, 31);
-        
+
         if (!isValidDate(jy, jm, jd)) {
             return ['2021', '01', '01']; // Return safe default
         }
@@ -69,20 +64,20 @@ jQuery(document).ready(function() {
         if (days > 36524) {
             gy += 100 * Math.floor(--days / 36524);
             days %= 36524;
-            if (days >= 365)days++;
+            if (days >= 365) days++;
         }
         gy += 4 * Math.floor(days / 1461);
         days %= 1461;
         gy += Math.floor((days - 1) / 365);
-        if (days > 365)days = (days - 1) % 365;
+        if (days > 365) days = (days - 1) % 365;
         gd = days + 1;
         sal_a = [0, 31, ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         for (gm = 0; gm < 13; gm++) {
             v = sal_a[gm];
-            if (gd <= v)break;
+            if (gd <= v) break;
             gd -= v;
         }
-        if (gm < 10)gm = '0' + String(gm);
+        if (gm < 10) gm = '0' + String(gm);
         return [String(gy), String(gm), String(gd)];
     }
 
@@ -99,7 +94,7 @@ jQuery(document).ready(function() {
         day = safeParseInt(day, 1, 1, 31);
         hour = safeParseInt(hour, 0, 0, 23);
         minu = safeParseInt(minu, 0, 0, 59);
-        
+
         div = '<div class="timestamp-wrap jalali">' +
             '<label><input type="text" id="jja" name="jja" value="' + day + '" size="2" maxlength="2" autocomplete="off" /></label>' +
             '<label><select id="mma" name="mma">';
@@ -140,27 +135,32 @@ jQuery(document).ready(function() {
         }
     });
 
-    jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#hha', function (e) {
+    jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#hha', function () {
         const hour = safeParseInt(jQuery(this).val(), 0, 0, 23);
         jQuery(this).val(hour);
         jQuery('input[name=hh]').val(hour);
     });
 
-    jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#mna', function (e) {
+    jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#mna', function () {
         const minute = safeParseInt(jQuery(this).val(), 0, 0, 59);
-        jQuery(this).val(minute.toString().padStart(2, '0'));
         jQuery('input[name=mn]').val(minute.toString().padStart(2, '0'));
     });
 
-    jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#aaa , #jja', function (e) {
+    // Apply padding only on blur (when user finishes typing)
+    jQuery('#timestampdiv,.inline-edit-date').on('blur', '#mna', function () {
+        const minute = safeParseInt(jQuery(this).val(), 0, 0, 59);
+        jQuery(this).val(minute.toString().padStart(2, '0'));
+    });
+
+    jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#aaa , #jja', function () {
         const year = safeParseInt(jQuery('#aaa').val(), 1400, 1, 3000);
         const day = safeParseInt(jQuery('#jja').val(), 1, 1, 31);
         const month = safeParseInt(jQuery('#mma').val(), 1, 1, 12);
-        
+
         // Update the input values with validated data
         jQuery('#aaa').val(year);
         jQuery('#jja').val(day);
-        
+
         if (isValidDate(year, month, day)) {
             date = jalali_to_gregorian(year, month, day);
             jQuery('input[name=aa]').val(date[0]);
@@ -173,7 +173,7 @@ jQuery(document).ready(function() {
         const year = safeParseInt(jQuery('#aaa').val(), 1400, 1, 3000);
         const day = safeParseInt(jQuery('#jja').val(), 1, 1, 31);
         const month = safeParseInt(jQuery(this).val(), 1, 1, 12);
-        
+
         if (isValidDate(year, month, day)) {
             date = jalali_to_gregorian(year, month, day);
             jQuery('input[name=aa]').val(date[0]);
@@ -186,7 +186,6 @@ jQuery(document).ready(function() {
     /*
      * Filter on post screen dates
      */
-//jQuery('select[name=m]').hide()
     var timer;
 
     function applyJalaliDate() {

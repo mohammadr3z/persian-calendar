@@ -1,8 +1,8 @@
-/* global PerscaSettings, wp, PersianCalendar */
+/* global wp, PersianCalendar */
 (function () {
   'use strict';
 
-  const PERSIAN_DIGITS_MAP = {'0': '۰', '1': '۱', '2': '۲', '3': '۳', '4': '۴', '5': '۵', '6': '۶', '7': '۷', '8': '۸', '9': '۹'};
+  const PERSIAN_DIGITS_MAP = { '0': '۰', '1': '۱', '2': '۲', '3': '۳', '4': '۴', '5': '۵', '6': '۶', '7': '۷', '8': '۸', '9': '۹' };
   const JALALI_MONTH_NAMES = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
   const SELECTORS_TO_CONVERT = [
     '.edit-post-post-schedule__text',
@@ -22,14 +22,21 @@
 
   const isGutenbergEditor = () => {
     return document.body.classList.contains('block-editor-page') ||
-           document.querySelector('.block-editor') !== null ||
-           (window.wp && wp.data && wp.data.select('core/editor'));
+      document.querySelector('.block-editor') !== null ||
+      (window.wp && wp.data && wp.data.select('core/editor'));
   };
 
   const parseWpDatetimeString = (dateStr) => {
     if (!dateStr || typeof dateStr !== 'string') return null;
-    const d = new Date(dateStr);
+    let d = new Date(dateStr);
     if (isNaN(d.getTime())) return null;
+
+    // Apply Iran timezone offset (+3:30 = 210 minutes)
+    const iranOffsetMinutes = 210;
+    const browserOffsetMinutes = -d.getTimezoneOffset();
+    const diffMinutes = iranOffsetMinutes - browserOffsetMinutes;
+    d = new Date(d.getTime() + diffMinutes * 60 * 1000);
+
     return {
       y: d.getFullYear(),
       m: d.getMonth() + 1,
@@ -76,7 +83,7 @@
     const hours = dateParts.hh.toString().padStart(2, '0');
     const minutes = dateParts.mi.toString().padStart(2, '0');
 
-    const newText = `${jd} ${persianMonth} ${hours}:${minutes}`;
+    const newText = `${jd} ${persianMonth} ${jy} ${hours}:${minutes}`;
     const persianText = toPersianDigits(newText);
 
     if (button.textContent.trim() !== persianText) {
@@ -103,10 +110,10 @@
         input.value = toPersianDigits(input.value);
       }
     });
-    
+
     setTimeout(() => delete el.dataset.persianDigits, 100);
   };
-  
+
   const addJalaliHint = (scheduleEl) => {
     if (!window.wp || !wp.data || !window.PersianDateConverter) return;
     const dateStr = wp.data.select('core/editor').getEditedPostAttribute('date');
@@ -118,11 +125,11 @@
 
     let hintEl = scheduleEl.querySelector('.persian-calendar-schedule');
     if (!hintEl) {
-        hintEl = document.createElement('span');
-        hintEl.className = 'persian-calendar-schedule';
-        hintEl.dir = 'rtl';
-        hintEl.style.cssText = 'margin-inline-start: 0.5em; opacity: 0.85; font-size: 12px; color: #757575;';
-        scheduleEl.appendChild(hintEl);
+      hintEl = document.createElement('span');
+      hintEl.className = 'persian-calendar-schedule';
+      hintEl.dir = 'rtl';
+      hintEl.style.cssText = 'margin-inline-start: 0.5em; opacity: 0.85; font-size: 12px; color: #757575;';
+      scheduleEl.appendChild(hintEl);
     }
     hintEl.textContent = `(${toPersianDigits(faHint)})`;
   };
@@ -142,7 +149,7 @@
             updateScheduleButton(node);
           }
           node.querySelectorAll('.editor-post-schedule__dialog-toggle').forEach(updateScheduleButton);
-          
+
           if (node.matches('.edit-post-post-schedule__text')) {
             addJalaliHint(node);
           }
@@ -157,9 +164,9 @@
         };
 
         mutation.addedNodes.forEach(processNode);
-        
+
         if (mutation.type === 'attributes' || mutation.type === 'characterData') {
-            processNode(mutation.target);
+          processNode(mutation.target);
         }
       }
     });
@@ -180,12 +187,12 @@
     const waitForDeps = () => {
       if (window.wp && wp.data && wp.data.select('core/editor') && window.PersianCalendar && window.PersianDateConverter) {
         document.querySelectorAll(SELECTORS_TO_CONVERT.join(', ')).forEach(el => {
-            if (el.matches('.components-datetime-picker, .block-editor-publish-date-time-picker')) replaceDatePicker(el);
-            if (el.matches('.editor-post-schedule__dialog-toggle')) updateScheduleButton(el);
-            if (el.matches('.edit-post-post-schedule__text')) addJalaliHint(el);
-            convertElementDigits(el);
+          if (el.matches('.components-datetime-picker, .block-editor-publish-date-time-picker')) replaceDatePicker(el);
+          if (el.matches('.editor-post-schedule__dialog-toggle')) updateScheduleButton(el);
+          if (el.matches('.edit-post-post-schedule__text')) addJalaliHint(el);
+          convertElementDigits(el);
         });
-        
+
         initUnifiedObserver();
       } else {
         setTimeout(waitForDeps, 100);
