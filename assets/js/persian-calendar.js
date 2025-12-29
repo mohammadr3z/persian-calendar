@@ -28,8 +28,9 @@
       return [0, 0, 0];
     }
 
-    const gy2 = gm > 2 ? gy : gy - 1;
-    let days = JALALI_EPOCH_DIFFERENCE + (365 * gy2) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) + gd + G_DAYS_IN_MONTH_NON_LEAP[gm - 1];
+    // Use correct formula from jalalidatepicker.min.js
+    const gy2 = gm > 2 ? (gy + 1) : gy;
+    let days = JALALI_EPOCH_DIFFERENCE + (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) + gd + G_DAYS_IN_MONTH_NON_LEAP[gm - 1];
 
     let jy = JALALI_YEAR_START_OFFSET + 33 * Math.floor(days / JALALI_33_YEAR_CYCLE_DAYS);
     days %= JALALI_33_YEAR_CYCLE_DAYS;
@@ -197,7 +198,7 @@
       // Header
       const header = document.createElement('div');
       header.className = 'persian-calendar-header';
-      header.innerHTML = '<h3 class="persian-calendar-title">انتشار</h3><button class="persian-calendar-now-btn" type="button">اکنون</button>';
+      header.innerHTML = '<h3 class="persian-calendar-title">انتشار</h3><div class="persian-calendar-header-actions"><button class="persian-calendar-now-btn" type="button">اکنون</button><button type="button" class="persian-calendar-close-btn" aria-label="بستن"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M12 13.06l3.712 3.713 1.061-1.06L13.061 12l3.712-3.712-1.06-1.06L12 10.938 8.288 7.227l-1.061 1.06L10.939 12l-3.712 3.712 1.06 1.061L12 13.061z"></path></svg></button></div>';
       wrapper.appendChild(header);
 
       // Time picker
@@ -287,11 +288,17 @@
       // Persian calendar grid: Saturday=0, Sunday=1, ..., Friday=6
       // Convert: Saturday(6)->0, Sunday(0)->1, Monday(1)->2, ..., Friday(5)->6
       const [gy, gm, gd] = jalaliToGregorian(this.currentYear, this.currentMonth, 1);
-      const jsDay = new Date(gy, gm - 1, gd).getDay();
-      // Formula: (jsDay + 2) % 7 gives correct Persian weekday index
-      const startDay = (jsDay + 2) % 7;
+      // Use UTC to ensure consistent weekday calculation across all devices/timezones
+      const jsDay = new Date(Date.UTC(gy, gm - 1, gd)).getUTCDay();
+      // Formula: (jsDay + 1) % 7 gives correct Persian weekday index
+      const startDay = (jsDay + 1) % 7;
 
-      const today = new Date();
+      // Apply Iran timezone offset (+3:30 = 210 minutes) to get correct "today"
+      let today = new Date();
+      const iranOffsetMinutes = 210;
+      const browserOffsetMinutes = -today.getTimezoneOffset();
+      const diffMinutes = iranOffsetMinutes - browserOffsetMinutes;
+      today = new Date(today.getTime() + diffMinutes * 60 * 1000);
       const [todayJy, todayJm, todayJd] = gregorianToJalali(today.getFullYear(), today.getMonth() + 1, today.getDate());
       const isTodayMonth = (this.currentMonth === todayJm && this.currentYear === todayJy);
       const isSelectedMonth = (this.currentMonth === this.selectedDate.month && this.currentYear === this.selectedDate.year);
@@ -335,6 +342,8 @@
           this.nextMonth();
         } else if (target.matches('.persian-calendar-now-btn')) {
           this.setToNow();
+        } else if (target.matches('.persian-calendar-close-btn') || target.closest('.persian-calendar-close-btn')) {
+          this.closeCalendar();
         }
       });
 
@@ -483,6 +492,22 @@
     getSelectedDate() {
       const [gy, gm, gd] = jalaliToGregorian(this.selectedDate.year, this.selectedDate.month, this.selectedDate.day);
       return new Date(gy, gm - 1, gd, this.selectedTime.hour, this.selectedTime.minute);
+    }
+
+    closeCalendar() {
+      // Find and close the Gutenberg popover
+      const popover = this.container.closest('.components-popover');
+      if (popover) {
+        // Try to find and click the toggle button to close properly
+        const toggleSelector = '.editor-post-schedule__dialog-toggle, .block-editor-post-schedule__toggle';
+        const toggle = document.querySelector(toggleSelector);
+        if (toggle) {
+          toggle.click();
+        } else {
+          // Fallback: hide the popover directly
+          popover.style.display = 'none';
+        }
+      }
     }
   }
 

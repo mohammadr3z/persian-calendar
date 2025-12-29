@@ -2,9 +2,9 @@
 Contributors: mohammadr3z
 Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.2
-Stable tag: 1.2.3.1
+Stable tag: 1.2.5.2
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,20 @@ No, the plugin is optimized and has minimal impact on performance.
 4. Persian digit conversion
 
 == Changelog ==
+
+= 1.2.5 =
+* Fixed calendar weekday calculation inconsistency between mobile and desktop devices
+* Used UTC-based date calculation for consistent weekday display across all timezones
+* Optimized Gutenberg calendar assets: now only load in block editor, not on frontend
+* Fixed hour/minute field order in inline edit timestamp for proper RTL display
+
+= 1.2.4 =
+* Fixed Gutenberg calendar date calculation bug
+* Fixed Persian ordinal suffix: now shows "ام" instead of English "th/st/nd/rd" in date formats
+* Fixed admin posts filter to properly filter by Jalali month instead of Gregorian
+* Fixed Media Library grid view filter to properly filter by Jalali month
+* Improved Gutenberg calendar styles
+* Improved code security and added caching for better performance
 
 = 1.2.3.1 =
 * Fixed get_post_time filter breaking dashboard when timestamp format is requested

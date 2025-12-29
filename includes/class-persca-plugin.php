@@ -53,6 +53,11 @@ class PERSCA_Plugin
         $saved_settings = get_option(PERSCA_Admin::OPTIONS_KEY, array());
         $this->settings = wp_parse_args($saved_settings, PERSCA_Admin::get_default_settings());
 
+        // Use classic editor if enabled
+        if ($this->is_setting_enabled('enable_classic_editor')) {
+            $this->disable_gutenberg_editor();
+        }
+
         // Regional settings (independent setting)
         if ($this->is_setting_enabled('regional_settings')) {
             $this->maybe_set_tehran_timezone();
@@ -90,10 +95,15 @@ class PERSCA_Plugin
             // Media Grid View date filter
             add_filter('media_view_settings', [$this, 'filter_media_view_settings'], 10, 2);
 
+            // Filter posts by Jalali month (mfa parameter)
+            add_action('pre_get_posts', [$this, 'filter_posts_by_jalali_month']);
+
+            // Media Grid View AJAX filter
+            add_filter('ajax_query_attachments_args', [$this, 'filter_ajax_attachments_by_jalali_month']);
+
             // Gutenberg calendar (depends on Jalali being enabled)
-            if ($this->is_setting_enabled('enable_gutenberg_calendar')) {
+            if ($this->is_setting_enabled('enable_gutenberg_calendar') && ! $this->is_setting_enabled('enable_classic_editor')) {
                 add_action('enqueue_block_editor_assets', [$this, 'enqueue_gutenberg_calendar_assets']);
-                add_action('wp_enqueue_scripts', [$this, 'enqueue_gutenberg_calendar_assets']);
             }
 
             // Admin timewrap and inline edit scripts (depends on Jalali)
@@ -316,7 +326,10 @@ class PERSCA_Plugin
     }
 
     /**
-     * Get months with posts for a post type, formatted with Jalali labels.
+     * Get unique Jalali months with posts for a post type.
+     *
+     * Queries all post dates and converts them to Jalali, then returns
+     * unique Jalali months for proper Persian calendar filtering.
      *
      * @param string $post_type Post type.
      * @return array List of months with 'year', 'month', 'text', 'value'.
@@ -325,49 +338,65 @@ class PERSCA_Plugin
     {
         global $wpdb;
 
-        // Query months that have posts
-        $months = $wpdb->get_results($wpdb->prepare("
-            SELECT DISTINCT YEAR(post_date) AS year, MONTH(post_date) AS month
+        // Check cache first
+        $cache_key = 'persca_jalali_months_' . $post_type;
+        $cached = wp_cache_get($cache_key, 'persca');
+        if ($cached !== false) {
+            return $cached;
+        }
+
+        // Query all unique post dates
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom query required for date aggregation.
+        $posts = $wpdb->get_results($wpdb->prepare("
+            SELECT DISTINCT DATE(post_date) AS post_date
             FROM $wpdb->posts
             WHERE post_type = %s
             AND post_status != 'auto-draft'
             ORDER BY post_date DESC
         ", $post_type));
 
-        if (empty($months)) {
+        if (empty($posts)) {
+            wp_cache_set($cache_key, array(), 'persca', HOUR_IN_SECONDS);
             return array();
         }
 
-        $formatted_months = array();
+        $jalali_months = [];
         $convert_digits = $this->is_setting_enabled('enable_persian_digits');
 
-        foreach ($months as $month_data) {
-            $gy = (int) $month_data->year;
-            $gm = (int) $month_data->month;
-
-            // Value format: YYYYMM (Gregorian - for filtering)
-            $value = sprintf('%04d%02d', $gy, $gm);
-
-            // Convert to Jalali for display
-            $jalali = $this->date->gregorian_to_jalali($gy, $gm, 1);
-            $month_name = $this->date->get_persian_month_name($jalali['m']);
-            $year = (string) $jalali['y'];
-
-            if ($convert_digits) {
-                $year = $this->date->to_persian_digits($year);
-            }
-
-            $display_text = $month_name . ' ' . $year;
-
-            $formatted_months[] = array(
-                'year'  => $gy,
-                'month' => $gm,
-                'text'  => $display_text,
-                'value' => $value,
+        foreach ($posts as $post_data) {
+            $date_parts = explode('-', $post_data->post_date);
+            $jalali = $this->date->gregorian_to_jalali(
+                (int) $date_parts[0],
+                (int) $date_parts[1],
+                (int) $date_parts[2]
             );
+            $jy = $jalali['y'];
+            $jm = $jalali['m'];
+            $key = sprintf('%04d%02d', $jy, $jm);
+
+            if (!isset($jalali_months[$key])) {
+                $month_name = $this->date->get_persian_month_name($jm);
+                $year_display = $convert_digits
+                    ? $this->date->to_persian_digits((string) $jy)
+                    : (string) $jy;
+
+                $jalali_months[$key] = [
+                    'year'  => $jy,
+                    'month' => $jm,
+                    'text'  => $month_name . ' ' . $year_display,
+                    'value' => $key,
+                ];
+            }
         }
 
-        return $formatted_months;
+        // Sort by value descending (newest first)
+        krsort($jalali_months);
+        $result = array_values($jalali_months);
+
+        // Cache the result for 1 hour
+        wp_cache_set($cache_key, $result, 'persca', HOUR_IN_SECONDS);
+
+        return $result;
     }
 
     /**
@@ -387,6 +416,7 @@ class PERSCA_Plugin
             if (current_action() === 'restrict_manage_media') {
                 $post_type = 'attachment';
             } else {
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter, no state change.
                 $post_type = isset($_GET['post_type']) ? sanitize_key($_GET['post_type']) : 'post';
             }
         }
@@ -397,14 +427,16 @@ class PERSCA_Plugin
             return;
         }
 
-        $selected_m = isset($_GET['m']) ? (int) $_GET['m'] : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter, no state change.
+        $selected_mfa = isset($_GET['mfa']) ? (int) $_GET['mfa'] : 0;
 
-        echo '<select name="m" id="filter-by-date-jalali">';
-        echo '<option value="0">' . esc_html__('همه تاریخ‌ها', 'persian-calendar') . '</option>';
+        // Hidden field to disable WordPress default month filter
+        echo '<input type="hidden" name="m" value="0" />';
+        echo '<select name="mfa" id="filter-by-date-jalali">';
+        echo '<option value="0">' . esc_html__('All dates', 'persian-calendar') . '</option>';
 
         foreach ($months as $month) {
-            $selected = ($selected_m == (int) $month['value']) ? ' selected="selected"' : '';
-            echo '<option value="' . esc_attr($month['value']) . '"' . $selected . '>' . esc_html($month['text']) . '</option>';
+            echo '<option value="' . esc_attr($month['value']) . '"' . selected($selected_mfa, (int) $month['value'], false) . '>' . esc_html($month['text']) . '</option>';
         }
 
         echo '</select>';
@@ -413,8 +445,12 @@ class PERSCA_Plugin
     /**
      * Filter Media View settings to inject Jalali months.
      *
+     * The Media Grid uses JavaScript to filter by month. We pass Jalali
+     * months with the Jalali year/month as the value which will be
+     * converted to Gregorian date range in the AJAX handler.
+     *
      * @param array $settings Media view settings.
-     * @param mixed $post     Current post object or ID (unused generally for this global setting).
+     * @param mixed $post     Current post object or ID.
      * @return array Modified settings.
      */
     public function filter_media_view_settings($settings, $post)
@@ -427,11 +463,154 @@ class PERSCA_Plugin
         $jalali_months = $this->get_jalali_months('attachment');
 
         if (! empty($jalali_months)) {
-            // Media View expects 'year', 'month', 'text' (extra 'value' field doesn't cause issues)
-            $settings['months'] = $jalali_months;
+            // Convert to Media View format with Jalali year/month
+            // The JavaScript sends these as 'year' and 'month' which we
+            // intercept in filter_ajax_attachments_by_jalali_month
+            $media_months = [];
+            foreach ($jalali_months as $month) {
+                $media_months[] = [
+                    'year'  => $month['year'],   // Jalali year
+                    'month' => $month['month'],  // Jalali month
+                    'text'  => $month['text'],
+                ];
+            }
+            $settings['months'] = $media_months;
         }
 
         return $settings;
+    }
+
+    /**
+     * Filter AJAX attachments query by Jalali month.
+     *
+     * Converts Jalali year/month from Media Grid to Gregorian date range.
+     * WordPress Media Grid sends 'year' and 'monthnum' which we convert.
+     *
+     * @since 1.2.4
+     *
+     * @param array $query Query arguments for attachment query.
+     * @return array Modified query arguments with date_query.
+     */
+    public function filter_ajax_attachments_by_jalali_month($query)
+    {
+        // Check if year or month is set
+        if (empty($query['year']) && empty($query['monthnum'])) {
+            return $query;
+        }
+
+        $jy = isset($query['year']) ? (int) $query['year'] : 0;
+        $jm = isset($query['monthnum']) ? (int) $query['monthnum'] : 0;
+
+        // If year is greater than 1900, it's likely Gregorian (no conversion needed)
+        // This handles edge cases where default WordPress filters might be used
+        if ($jy > 1900) {
+            return $query;
+        }
+
+        // Validate Jalali date
+        if ($jy < 1300 || $jy > 1500 || $jm < 1 || $jm > 12) {
+            return $query;
+        }
+
+        // Get first and last day of Jalali month in Gregorian
+        $first_day = $this->date->jalali_to_gregorian($jy, $jm, 1);
+        $days_in_month = $this->get_jalali_month_days($jy, $jm);
+        $last_day = $this->date->jalali_to_gregorian($jy, $jm, $days_in_month);
+
+        // Remove year/monthnum to prevent WordPress from filtering by them
+        unset($query['year'], $query['monthnum']);
+
+        // Add date_query for the Jalali month range
+        $query['date_query'] = [
+            [
+                'after'     => sprintf('%04d-%02d-%02d', $first_day['y'], $first_day['m'], $first_day['d']),
+                'before'    => sprintf('%04d-%02d-%02d', $last_day['y'], $last_day['m'], $last_day['d']),
+                'inclusive' => true,
+            ],
+        ];
+
+        return $query;
+    }
+
+    /**
+     * Filter posts query by Jalali month using mfa parameter.
+     *
+     * Converts Jalali month to Gregorian date range and applies
+     * a date_query filter to show only posts from that Jalali month.
+     *
+     * @since 1.2.4
+     *
+     * @param WP_Query $query The main WordPress query.
+     */
+    public function filter_posts_by_jalali_month($query)
+    {
+        if (!is_admin() || !$query->is_main_query()) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter, no state change.
+        $mfa = isset($_GET['mfa']) ? (int) $_GET['mfa'] : 0;
+        if ($mfa === 0) {
+            return;
+        }
+
+        // Parse Jalali year and month from mfa (format: YYYYMM)
+        $mfa_str = (string) $mfa;
+        $jy = (int) substr($mfa_str, 0, 4);
+        $jm = (int) substr($mfa_str, 4, 2);
+
+        // Validate Jalali date range
+        if ($jy < 1300 || $jy > 1500 || $jm < 1 || $jm > 12) {
+            return;
+        }
+
+        // Get first and last day of Jalali month in Gregorian
+        $first_day = $this->date->jalali_to_gregorian($jy, $jm, 1);
+
+        // Get number of days in this Jalali month
+        $days_in_month = $this->get_jalali_month_days($jy, $jm);
+        $last_day = $this->date->jalali_to_gregorian($jy, $jm, $days_in_month);
+
+        $start_date = sprintf('%04d-%02d-%02d 00:00:00', $first_day['y'], $first_day['m'], $first_day['d']);
+        $end_date = sprintf('%04d-%02d-%02d 23:59:59', $last_day['y'], $last_day['m'], $last_day['d']);
+
+        $query->set('date_query', [
+            [
+                'after'     => $start_date,
+                'before'    => $end_date,
+                'inclusive' => true,
+            ],
+        ]);
+
+        // Remove default 'm' parameter to avoid conflicts
+        $query->set('m', 0);
+    }
+
+    /**
+     * Get number of days in a Jalali month.
+     *
+     * @since 1.2.4
+     *
+     * @param int $jy Jalali year.
+     * @param int $jm Jalali month (1-12).
+     * @return int Number of days in the month (29-31).
+     */
+    private function get_jalali_month_days($jy, $jm)
+    {
+        // Months 1-6 have 31 days
+        if ($jm <= 6) {
+            return 31;
+        }
+
+        // Months 7-11 have 30 days
+        if ($jm <= 11) {
+            return 30;
+        }
+
+        // Month 12 (Esfand) - 29 days normally, 30 in leap years
+        // Jalali leap year: remainder of (year / 33) is in [1, 5, 9, 13, 17, 22, 26, 30]
+        $leap_remainders = [1, 5, 9, 13, 17, 22, 26, 30];
+        return in_array($jy % 33, $leap_remainders) ? 30 : 29;
     }
 
     /**
@@ -540,7 +719,12 @@ class PERSCA_Plugin
     {
         // Only load on post list pages for inline-edit functionality
         $screen = get_current_screen();
-        if (! $screen || $screen->base !== 'edit') {
+        if (! $screen || ! in_array($screen->base, ['post', 'edit', 'comment'])) {
+            return;
+        }
+
+        // Don't load on post edit screen if Gutenberg is enabled
+        if ($screen->base === 'post' && $screen->is_block_editor()) {
             return;
         }
 
@@ -618,5 +802,17 @@ class PERSCA_Plugin
     public function get_settings(): array
     {
         return $this->settings;
+    }
+
+    /**
+     * Disable Gutenberg editor for posts.
+     * 
+     * This method disables the Gutenberg editor and enables
+     * the classic editor for posts.
+     */
+    private function disable_gutenberg_editor(): void
+    {
+        // Disable Gutenberg for posts
+        add_filter('use_block_editor_for_post', '__return_false');
     }
 }

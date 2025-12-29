@@ -182,6 +182,7 @@ final class PERSCA_Admin
             'regional_settings'    => true,
             'enable_dashboard_font' => true,
             'enable_gutenberg_calendar' => true,
+            'enable_classic_editor' => false,
         ];
     }
 
@@ -289,6 +290,11 @@ final class PERSCA_Admin
                 'desc' => __('Integrate Persian calendar functionality within the Gutenberg editor.', 'persian-calendar'),
                 'icon' => 'dashicons-edit',
             ],
+            'enable_classic_editor' => [
+                'label' => __('Classic Editor', 'persian-calendar'),
+                'desc' => __('Enable classic editor instead of block editor (Gutenberg).', 'persian-calendar'),
+                'icon' => 'dashicons-editor-removeformatting',
+            ],
             'enable_dashboard_font' => [
                 'label' => __('Dashboard Font', 'persian-calendar'),
                 'desc' => __('Apply elegant Persian typography to enhance WordPress dashboard readability.', 'persian-calendar'),
@@ -368,8 +374,7 @@ final class PERSCA_Admin
                     <div class="persian-calendar-about">
                         <div class="persian-calendar-about-header">
                         </div>
-                        <p><?php esc_html_e('Persian Calendar plugin seamlessly converts Gregorian dates to Persian/Jalali dates throughout WordPress.', 'persian-calendar'); ?></p>
-                        <p><?php esc_html_e('Designed specifically for Persian and Farsi websites.', 'persian-calendar'); ?></p>
+                        <p><?php esc_html_e('The Persian Calendar plugin automatically converts all WordPress Gregorian dates to Jalali (Persian) dates across your entire website.', 'persian-calendar'); ?></p>
                     </div>
 
                     <!-- Premium Ad -->

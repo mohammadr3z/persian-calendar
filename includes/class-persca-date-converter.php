@@ -291,6 +291,10 @@ class PERSCA_Date_Converter
                 case 'N':
                     $out .= (string) ($w === 0 ? 7 : $w);
                     break;
+                // Ordinal suffix - Persian equivalent of st, nd, rd, th
+                case 'S':
+                    $out .= 'ام';
+                    break;
                 // Time - directly from DateTime (Tehran time)
                 case 'H':
                 case 'G':
