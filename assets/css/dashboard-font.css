@@ -6,78 +6,45 @@
   font-display: swap;
 }
 
-/* Admin RTL */
-html[dir="rtl"] body,
-html[dir="rtl"] #wpbody,
-html[dir="rtl"] #wpwrap,
-html[dir="rtl"] .wrap,
-html[dir="rtl"] .form-table,
-html[dir="rtl"] .wp-list-table,
-html[dir="rtl"] input,
-html[dir="rtl"] select,
-html[dir="rtl"] textarea,
-html[dir="rtl"] button:not(.dashicons),
-html[dir="rtl"] span:not(.dashicons):not(.icon):not(.CodeMirror-lines *):not(.star),
-html[dir="rtl"] a,
-html[dir="rtl"] p,
-html[dir="rtl"] div:not(.dashicons):not(.star),
-html[dir="rtl"] label,
-html[dir="rtl"] strong,
-html[dir="rtl"] em,
-html[dir="rtl"] li,
-html[dir="rtl"] td,
-html[dir="rtl"] th,
-html[dir="rtl"] #adminmenu a,
-html[dir="rtl"] #adminmenu .wp-submenu a,
-html[dir="rtl"] #wpadminbar .ab-item,
-html[dir="rtl"] #wpadminbar .ab-label {
+/*
+ * Universal Persian font for RTL admin.
+ * Uses a broad selector with icon exclusions to ensure
+ * consistent Persian typography across all admin plugins
+ * without needing to enumerate every element type.
+ */
+html[dir="rtl"] *:not(pre):not(code):not(kbd):not(svg):not(#newcontent):not([class*="fa-"]):not([class*="bi-"]):not([class*="ion-"]):not([class*="material"]):not([class*="icon"]):not([class*="glyphicon"]):not([class*="CodeMirror"]):not([class*="cm-"]):not([class*="monaco-"]) {
     font-family: 'VazirmatnVF', sans-serif !important;
 }
 
-/* Headings RTL */
-html[dir="rtl"] h1,
-html[dir="rtl"] h2,
-html[dir="rtl"] h3,
-html[dir="rtl"] h4,
-html[dir="rtl"] h5,
-html[dir="rtl"] h6 {
-    font-family: 'VazirmatnVF', sans-serif !important;
-}
-
-/* Keep Dashicons intact */
+/* Preserve Dashicons font */
 .dashicons,
-.dashicons-before:before {
-    font-family: "dashicons";
-}
-
-span.dashicons {
+.dashicons-before:before,
+span.dashicons,
+#wpadminbar .ab-icon:before,
+#wpadminbar .dashicons {
     font-family: "dashicons" !important;
 }
 
-/* Keep wpadminbar icons intact */
-html[dir="rtl"] #wpadminbar .ab-icon:before,
-html[dir="rtl"] #wpadminbar .dashicons {
-    font-family: "dashicons" !important;
-}
-
-/* Login, Register, Lost Password (RTL) */
-html[dir="rtl"] body.login,
-html[dir="rtl"] body.login form,
-html[dir="rtl"] body.login label,
-html[dir="rtl"] body.login input,
-html[dir="rtl"] body.login #nav,
-html[dir="rtl"] body.login #backtoblog {
-    font-family: 'VazirmatnVF', sans-serif !important;
-}
-
-/* Keep monospace for code elements */
+/* Preserve monospace for code elements */
 html[dir="rtl"] pre,
+html[dir="rtl"] pre *,
 html[dir="rtl"] kbd,
 html[dir="rtl"] code,
+html[dir="rtl"] code *,
+html[dir="rtl"] #newcontent,
+html[dir="rtl"] .CodeMirror-lines,
 html[dir="rtl"] .CodeMirror-lines *,
-html[dir="rtl"] .CodeMirror-lines span {
+html[dir="rtl"] .monaco-editor,
+html[dir="rtl"] .monaco-editor * {
     font-family: monospace !important;
 }
+
+/* Prevent SVG content from inheriting custom fonts */
+svg, svg * {
+    font-family: inherit !important;
+}
+
+/* Font weight adjustments for variable font */
 .plugins .inactive .plugin-title strong {
     font-weight: 400 !important;
     font-variation-settings: "wght" 400 !important;
@@ -100,7 +67,7 @@ html[dir="rtl"] .CodeMirror-lines span {
 .plugin-title strong,
 #editable-post-name,
 .post-state,
-h1.wp-heading-inline{
+h1.wp-heading-inline {
     font-variation-settings: "wght" 650 !important;
     font-weight: 400 !important;
 }

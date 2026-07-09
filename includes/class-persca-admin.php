@@ -183,6 +183,7 @@ final class PERSCA_Admin
             'enable_dashboard_font' => true,
             'enable_gutenberg_calendar' => true,
             'enable_classic_editor' => false,
+            'enable_integration_jet_engine' => false,
         ];
     }
 
@@ -321,6 +322,39 @@ final class PERSCA_Admin
     }
 
     /**
+     * Render integration settings fields.
+     *
+     * @since 1.2.7
+     */
+    private function render_integration_fields(): void
+    {
+        $fields = [
+            'enable_integration_jet_engine' => [
+                'label' => __('JetEngine Integration', 'persian-calendar'),
+                'desc' => __('Enable Persian/Jalali calendar and date picker support in JetEngine fields.', 'persian-calendar'),
+                'icon' => 'dashicons-admin-plugins',
+            ],
+        ];
+
+        foreach ($fields as $option => $field_data) {
+            $field_args = [
+                'label_for' => $option,
+                'option'    => $option,
+                'label'     => $field_data['label'],
+                'desc'      => $field_data['desc'],
+                'icon'      => $field_data['icon'],
+            ];
+
+            // Add disabled_by if exists
+            if (isset($field_data['disabled_by'])) {
+                $field_args['disabled_by'] = $field_data['disabled_by'];
+            }
+
+            $this->checkbox_field($field_args);
+        }
+    }
+
+    /**
      * Render the settings page.
      *
      * @since 1.0.0
@@ -339,6 +373,9 @@ final class PERSCA_Admin
                         <h4><?php esc_html_e('Persian Calendar Settings', 'persian-calendar'); ?></h4>
                         <p><?php esc_html_e('Configure Persian calendar and digit conversion settings for your WordPress website', 'persian-calendar'); ?></p>
                     </div>
+                    <div class="persian-calendar-version">
+                        <?php printf(esc_html__('Version %s', 'persian-calendar'), PERSCA_PLUGIN_VERSION); ?>
+                    </div>
                 </div>
                 <div class="persian-calendar-logo">
                     <img src="<?php echo esc_url(PERSCA_PLUGIN_URL . 'assets/images/icon.png'); ?>" alt="Persian Calendar Logo">
@@ -349,23 +386,34 @@ final class PERSCA_Admin
             <div class="persian-calendar-main">
                 <!-- Content -->
                 <div class="persian-calendar-content">
-                    <div class="persian-calendar-card">
-                        <div class="persian-calendar-card-header">
-                            <h4><?php esc_html_e('General Settings', 'persian-calendar'); ?></h4>
+                    <form id="persian-calendar-form" method="post" action="options.php">
+                        <?php
+                        settings_fields('persca_settings');
+                        wp_nonce_field('persca_settings', 'persca_nonce');
+                        ?>
+
+                        <div class="persian-calendar-card">
+                            <div class="persian-calendar-card-header">
+                                <h4><?php esc_html_e('General Settings', 'persian-calendar'); ?></h4>
+                            </div>
+                            <div class="persian-calendar-card-body">
+                                <?php $this->render_settings_fields(); ?>
+                            </div>
                         </div>
-                        <div class="persian-calendar-card-body">
-                            <form id="persian-calendar-form" method="post" action="options.php">
-                                <?php
-                                settings_fields('persca_settings');
-                                wp_nonce_field('persca_settings', 'persca_nonce');
-                                $this->render_settings_fields();
-                                ?>
-                            </form>
+
+                        <div class="persian-calendar-card">
+                            <div class="persian-calendar-card-header">
+                                <h4><?php esc_html_e('Integrations', 'persian-calendar'); ?></h4>
+                            </div>
+                            <div class="persian-calendar-card-body">
+                                <?php $this->render_integration_fields(); ?>
+                            </div>
                         </div>
-                    </div>
-                    <button type="submit" form="persian-calendar-form" class="persian-calendar-submit">
-                        <?php esc_html_e('Save Changes', 'persian-calendar'); ?>
-                    </button>
+
+                        <button type="submit" class="persian-calendar-submit">
+                            <?php esc_html_e('Save Changes', 'persian-calendar'); ?>
+                        </button>
+                    </form>
                 </div>
 
                 <!-- Sidebar -->

@@ -49,10 +49,23 @@ class PERSCA_Plugin
      */
     public function init(): void
     {
+        // Skip all features for non-RTL languages.
+        // Persian calendar features are only relevant for RTL locales (fa_IR, ar, etc.).
+        if (!is_rtl()) {
+            return;
+        }
+
         // Refresh settings cache - merge saved options with defaults
         $saved_settings = get_option(PERSCA_Admin::OPTIONS_KEY, array());
         $this->settings = wp_parse_args($saved_settings, PERSCA_Admin::get_default_settings());
 
+        // Load integrations
+        if ($this->is_setting_enabled('enable_integration_jet_engine')) {
+            $integration_file = PERSCA_PLUGIN_DIR . 'integrate/jet-engine.php';
+            if (file_exists($integration_file)) {
+                include_once $integration_file;
+            }
+        }
         // Use classic editor if enabled
         if ($this->is_setting_enabled('enable_classic_editor')) {
             $this->disable_gutenberg_editor();

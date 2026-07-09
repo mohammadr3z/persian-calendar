@@ -29,7 +29,7 @@
 .persian-calendar-now-btn {
   background: none;
   border: none;
-  color: #2196f3;
+  color: #3858e9;
   font-size: 11px;
   cursor: pointer;
   padding: 4px 8px;
@@ -38,8 +38,8 @@
 }
 
 .persian-calendar-now-btn:hover {
-  background-color: #f5fafc;
-  color: #005a87;
+  background-color: color-mix(in srgb, #3858e9 4%, transparent);
+  color: #183ad6;
 }
 
 /* Header Actions Container */
@@ -66,7 +66,7 @@
 
 .persian-calendar-close-btn:hover {
   background: none;
-  color: #007cba;
+  color: #3858e9;
 }
 
 .persian-calendar-close-btn:focus {
@@ -135,8 +135,8 @@
 .persian-calendar-hour:focus,
 .persian-calendar-minute:focus {
   outline: none;
-  border-color: #2196f3;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+  border-color: #3858e9;
+  box-shadow: 0 0 0 2px rgba(56, 88, 233, 0.1);
 }
 
 .persian-calendar-time-inputs span {
@@ -210,8 +210,8 @@ input.persian-calendar-minute:focus {
 
 .persian-calendar-month:focus {
   outline: none;
-  border-color: #2196f3;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+  border-color: #3858e9;
+  box-shadow: 0 0 0 2px rgba(56, 88, 233, 0.1);
 }
 
 .persian-calendar-day-display {
@@ -288,12 +288,12 @@ select.persian-calendar-month:focus {
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  color: #007cba;
+  color: #3858e9;
 }
 
 .persian-calendar-prev:hover,
 .persian-calendar-next:hover {
-  background: #f5fafc;
+  background-color: color-mix(in srgb, #3858e9 4%, transparent);
 }
 
 .persian-calendar-current-month {
@@ -347,7 +347,7 @@ select.persian-calendar-month:focus {
 }
 
 .persian-calendar-day:not(.empty):hover {
-  color: #007cba;
+  color: #3858e9;
 }
 
 .persian-calendar-day.today {
@@ -356,7 +356,7 @@ select.persian-calendar-month:focus {
 }
 
 .persian-calendar-day.selected {
-  background: #007cba;
+  background: #3858e9;
   color: white;
   font-weight: 500;
 }
