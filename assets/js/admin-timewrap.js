@@ -15,36 +15,18 @@ jQuery(document).ready(function () {
         return parsed;
     }
 
-    function isValidDate(year, month, day) {
-        return year >= 1 && year <= 3000 &&
-            month >= 1 && month <= 12 &&
-            day >= 1 && day <= 31;
-    }
-
     function gregorian_to_jalali(gy, gm, gd) {
         gy = safeParseInt(gy, 1400, 1, 3000);
         gm = safeParseInt(gm, 1, 1, 12);
         gd = safeParseInt(gd, 1, 1, 31);
 
-        if (!isValidDate(gy, gm, gd)) {
-            return ['1400', '01', '01']; // Return safe default
+        if (!window.PersianDateConverter || !window.PersianDateConverter.isValidGregorian(gy, gm, gd)) {
+            return ['1400', '01', '01'];
         }
-        g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-        jy = (gy <= 1600) ? 0 : 979;
-        gy -= (gy <= 1600) ? 621 : 1600;
-        gy2 = (gm > 2) ? (gy + 1) : gy;
-        days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100)
-            + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
-        jy += 33 * Math.floor(days / 12053);
-        days %= 12053;
-        jy += 4 * Math.floor(days / 1461);
-        days %= 1461;
-        jy += Math.floor((days - 1) / 365);
-        if (days > 365) days = (days - 1) % 365;
-        jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
-        jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
-        if (jm < 10) jm = '0' + String(jm);
-        return [String(jy), String(jm), String(jd)];
+
+        // Use shared converter from persian-calendar.js
+        const [jy, jm, jd] = window.PersianDateConverter.gregorianToJalali(gy, gm, gd);
+        return [String(jy), window.PersianDateConverter.padZero(jm), String(jd)];
     }
 
     function jalali_to_gregorian(jy, jm, jd) {
@@ -52,37 +34,14 @@ jQuery(document).ready(function () {
         jm = safeParseInt(jm, 1, 1, 12);
         jd = safeParseInt(jd, 1, 1, 31);
 
-        if (!isValidDate(jy, jm, jd)) {
-            return ['2021', '01', '01']; // Return safe default
+        if (!window.PersianDateConverter || !window.PersianDateConverter.isValidJalali(jy, jm, jd)) {
+            return ['2021', '01', '01'];
         }
-        gy = (jy <= 979) ? 621 : 1600;
-        jy -= (jy <= 979) ? 0 : 979;
-        days = (365 * jy) + (Math.floor(jy / 33) * 8) + Math.floor(((jy % 33) + 3) / 4)
-            + 78 + jd + ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
-        gy += 400 * Math.floor(days / 146097);
-        days %= 146097;
-        if (days > 36524) {
-            gy += 100 * Math.floor(--days / 36524);
-            days %= 36524;
-            if (days >= 365) days++;
-        }
-        gy += 4 * Math.floor(days / 1461);
-        days %= 1461;
-        gy += Math.floor((days - 1) / 365);
-        if (days > 365) days = (days - 1) % 365;
-        gd = days + 1;
-        sal_a = [0, 31, ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-        for (gm = 0; gm < 13; gm++) {
-            v = sal_a[gm];
-            if (gd <= v) break;
-            gd -= v;
-        }
-        if (gm < 10) gm = '0' + String(gm);
-        return [String(gy), String(gm), String(gd)];
+
+        // Use shared converter from persian-calendar.js
+        const [gy, gm, gd_r] = window.PersianDateConverter.jalaliToGregorian(jy, jm, jd);
+        return [String(gy), window.PersianDateConverter.padZero(gm), String(gd_r)];
     }
-
-    var jalali_month_names = ['', 'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
-
 
     /*
      * Edit inline
@@ -95,14 +54,14 @@ jQuery(document).ready(function () {
         hour = safeParseInt(hour, 0, 0, 23);
         minu = safeParseInt(minu, 0, 0, 59);
 
-        div = '<div class="timestamp-wrap jalali">' +
+        let div = '<div class="timestamp-wrap jalali">' +
             '<label><input type="text" id="jja" name="jja" value="' + day + '" size="2" maxlength="2" autocomplete="off" /></label>' +
             '<label><select id="mma" name="mma">';
-        for (var i = 1; i < 13; i++) {
+        for (let i = 1; i < 13; i++) {
             if (i == mon)
-                div += '<option value="' + i + '" selected="selected">' + jalali_month_names[i] + '</option>';
+                div += '<option value="' + i + '" selected="selected">' + window.PersianDateConverter.PERSIAN_MONTHS[i - 1] + '</option>';
             else
-                div += '<option value="' + i + '">' + jalali_month_names[i] + '</option>';
+                div += '<option value="' + i + '">' + window.PersianDateConverter.PERSIAN_MONTHS[i - 1] + '</option>';
         }
         div += '</select></label>' +
 
@@ -115,20 +74,20 @@ jQuery(document).ready(function () {
 
     jQuery('a.edit-timestamp').on('click', function () {
         jQuery('.jalali').remove();
-        var date = gregorian_to_jalali(jQuery('#aa').val(), jQuery('#mm').val(), jQuery('#jj').val());
+        const date = gregorian_to_jalali(jQuery('#aa').val(), jQuery('#mm').val(), jQuery('#jj').val());
         jQuery('#timestampdiv').prepend(jalaliTimestampDiv(date[0], date[1], date[2], jQuery('#hh').val(), jQuery('#mn').val()));
         jQuery('#timestampdiv .timestamp-wrap:eq(1)').hide();
     });
 
     jQuery('#the-list').on('click', '.editinline', function () {
-        var tr = jQuery(this).closest('td');
-        var year = tr.find('.aa').html();
+        const tr = jQuery(this).closest('td');
+        const year = tr.find('.aa').text();
         if (year > 1700) {
-            var month = tr.find('.mm').html();
-            var day = tr.find('.jj').html();
-            var hour = tr.find('.hh').html();
-            var minu = tr.find('.mn').html();
-            var date = gregorian_to_jalali(year, month, day);
+            const month = tr.find('.mm').text();
+            const day = tr.find('.jj').text();
+            const hour = tr.find('.hh').text();
+            const minu = tr.find('.mn').text();
+            const date = gregorian_to_jalali(year, month, day);
             jQuery('.inline-edit-date .timestamp-wrap').hide();
             jQuery('.jalali').remove();
             jQuery('.inline-edit-date legend').after(jalaliTimestampDiv(date[0], date[1], date[2], hour, minu));
@@ -136,13 +95,25 @@ jQuery(document).ready(function () {
     });
 
     jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#hha', function () {
+        const val = jQuery(this).val();
+        if (val === '') return;
+        const hour = safeParseInt(val, 0, 0, 23);
+        if (jQuery(this).val() !== String(hour)) {
+            jQuery(this).val(hour);
+        }
+        jQuery('input[name=hh]').val(hour);
+    });
+
+    jQuery('#timestampdiv,.inline-edit-date').on('blur', '#hha', function () {
         const hour = safeParseInt(jQuery(this).val(), 0, 0, 23);
         jQuery(this).val(hour);
         jQuery('input[name=hh]').val(hour);
     });
 
     jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#mna', function () {
-        const minute = safeParseInt(jQuery(this).val(), 0, 0, 59);
+        const val = jQuery(this).val();
+        if (val === '') return;
+        const minute = safeParseInt(val, 0, 0, 59);
         jQuery('input[name=mn]').val(minute.toString().padStart(2, '0'));
     });
 
@@ -153,29 +124,81 @@ jQuery(document).ready(function () {
     });
 
     jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#aaa , #jja', function () {
-        const year = safeParseInt(jQuery('#aaa').val(), 1400, 1, 3000);
-        const day = safeParseInt(jQuery('#jja').val(), 1, 1, 31);
+        const valYear = jQuery('#aaa').val();
+        const valDay = jQuery('#jja').val();
+
+        // Allow user to clear fields while typing
+        if (valYear === '' || valDay === '') return;
+
+        const year = safeParseInt(valYear, 1400, 1, 3000);
+        const day = safeParseInt(valDay, 1, 1, 31);
         const month = safeParseInt(jQuery('#mma').val(), 1, 1, 12);
 
-        // Update the input values with validated data
-        jQuery('#aaa').val(year);
-        jQuery('#jja').val(day);
+        // Update the input values with validated data only if they changed
+        if (jQuery('#aaa').val() !== String(year)) {
+            jQuery('#aaa').val(year);
+        }
+        if (jQuery('#jja').val() !== String(day)) {
+            jQuery('#jja').val(day);
+        }
 
-        if (isValidDate(year, month, day)) {
-            date = jalali_to_gregorian(year, month, day);
+        if (window.PersianDateConverter && window.PersianDateConverter.isValidJalali(year, month, day)) {
+            const date = jalali_to_gregorian(year, month, day);
             jQuery('input[name=aa]').val(date[0]);
             jQuery('select[name=mm]').val(date[1]);
             jQuery('input[name=jj]').val(date[2]);
         }
     });
 
+    jQuery('#timestampdiv,.inline-edit-date').on('blur', '#aaa', function () {
+        const year = safeParseInt(jQuery(this).val(), 1400, 1, 3000);
+        jQuery(this).val(year);
+
+        const month = safeParseInt(jQuery('#mma').val(), 1, 1, 12);
+        let day = safeParseInt(jQuery('#jja').val(), 1, 1, 31);
+
+        let maxDay = 31;
+        if (window.PersianDateConverter && window.PersianDateConverter.getDaysInJalaliMonth) {
+            maxDay = window.PersianDateConverter.getDaysInJalaliMonth(year, month);
+        }
+        if (day > maxDay) {
+            day = maxDay;
+            jQuery('#jja').val(day);
+        }
+
+        jQuery('#aaa').trigger('keyup');
+    });
+
+    jQuery('#timestampdiv,.inline-edit-date').on('blur', '#jja', function () {
+        const year = safeParseInt(jQuery('#aaa').val(), 1400, 1, 3000);
+        const month = safeParseInt(jQuery('#mma').val(), 1, 1, 12);
+
+        let maxDay = 31;
+        if (window.PersianDateConverter && window.PersianDateConverter.getDaysInJalaliMonth) {
+            maxDay = window.PersianDateConverter.getDaysInJalaliMonth(year, month);
+        }
+
+        const day = safeParseInt(jQuery(this).val(), 1, 1, maxDay);
+        jQuery(this).val(day);
+        jQuery('#jja').trigger('keyup');
+    });
+
     jQuery('#timestampdiv,.inline-edit-date').on('change', '#mma', function () {
         const year = safeParseInt(jQuery('#aaa').val(), 1400, 1, 3000);
-        const day = safeParseInt(jQuery('#jja').val(), 1, 1, 31);
         const month = safeParseInt(jQuery(this).val(), 1, 1, 12);
+        let day = safeParseInt(jQuery('#jja').val(), 1, 1, 31);
 
-        if (isValidDate(year, month, day)) {
-            date = jalali_to_gregorian(year, month, day);
+        let maxDay = 31;
+        if (window.PersianDateConverter && window.PersianDateConverter.getDaysInJalaliMonth) {
+            maxDay = window.PersianDateConverter.getDaysInJalaliMonth(year, month);
+        }
+        if (day > maxDay) {
+            day = maxDay;
+            jQuery('#jja').val(day);
+        }
+
+        if (window.PersianDateConverter && window.PersianDateConverter.isValidJalali(year, month, day)) {
+            const date = jalali_to_gregorian(year, month, day);
             jQuery('input[name=aa]').val(date[0]);
             jQuery('select[name=mm]').val(date[1]);
             jQuery('input[name=jj]').val(date[2]);
@@ -186,37 +209,45 @@ jQuery(document).ready(function () {
     /*
      * Filter on post screen dates
      */
-    var timer;
+    let timer;
+    let timerTicks = 0;
 
     function applyJalaliDate() {
-        var oldTimestamp = jQuery('#timestamp b').text();
-        var newTimestamp = jQuery('#jja').val() + ' ' + jQuery('#mma option:selected').text() + ' ' + jQuery('#aaa').val() + ' در ' + jQuery('#hha').val() + ':' + jQuery('#mna').val();
-        newTimestamp = newTimestamp.replace(/\d+/g, function (digit) {
-            var ret = '';
-            for (var i = 0, len = digit.length; i < len; i++) {
-                ret += String.fromCharCode(digit.charCodeAt(i) + 1728);
-            }
-            return ret;
-        });
-        if (oldTimestamp != newTimestamp) {
+        timerTicks++;
+        const oldTimestamp = jQuery('#timestamp b').text();
+        let newTimestamp = jQuery('#jja').val() + ' ' + jQuery('#mma option:selected').text() + ' ' + jQuery('#aaa').val() + ' در ' + jQuery('#hha').val() + ':' + jQuery('#mna').val();
+        newTimestamp = window.PersianDateConverter.toPersianDigits(newTimestamp);
+        if (oldTimestamp !== newTimestamp) {
             jQuery('#timestamp b').attr('dir', 'rtl');
-            jQuery('#timestamp b').html(newTimestamp);
+            jQuery('#timestamp b').text(newTimestamp);
+            clearInterval(timer);
+        } else if (timerTicks > 100) {
             clearInterval(timer);
         }
     }
 
     jQuery('#timestampdiv').on('keypress', function (e) {
-        if (e.which == 13)
+        if (e.which === 13) {
+            if (timer) {
+                clearInterval(timer);
+            }
+            timerTicks = 0;
             timer = setInterval(function () {
                 applyJalaliDate();
             }, 50);
+        }
     });
 
     jQuery('.save-timestamp  , #publish').on('click', function () {
-        if (jQuery('#aaa').length)
+        if (jQuery('#aaa').length) {
+            if (timer) {
+                clearInterval(timer);
+            }
+            timerTicks = 0;
             timer = setInterval(function () {
                 applyJalaliDate();
             }, 50);
+        }
     });
 
 

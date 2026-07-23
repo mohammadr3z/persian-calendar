@@ -2,8 +2,6 @@
 (function () {
   'use strict';
 
-  const PERSIAN_DIGITS_MAP = { '0': '۰', '1': '۱', '2': '۲', '3': '۳', '4': '۴', '5': '۵', '6': '۶', '7': '۷', '8': '۸', '9': '۹' };
-  const JALALI_MONTH_NAMES = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
   const SELECTORS_TO_CONVERT = [
     '.edit-post-post-schedule__text',
     '.components-datetime__time',
@@ -16,8 +14,10 @@
   ];
 
   const toPersianDigits = (str) => {
-    if (str === null || str === undefined) return '';
-    return str.toString().replace(/[0-9]/g, (digit) => PERSIAN_DIGITS_MAP[digit]);
+    if (window.PersianCalendarIntegrations && window.PersianCalendarIntegrations.toPersianDigits) {
+      return window.PersianCalendarIntegrations.toPersianDigits(str);
+    }
+    return str;
   };
 
   const isGutenbergEditor = () => {
@@ -79,7 +79,7 @@
     if (!dateParts) return;
 
     const [jy, jm, jd] = window.PersianDateConverter.gregorianToJalali(dateParts.y, dateParts.m, dateParts.d);
-    const persianMonth = JALALI_MONTH_NAMES[jm - 1] || jm;
+    const persianMonth = window.PersianDateConverter.PERSIAN_MONTHS[jm - 1] || jm;
     const hours = dateParts.hh.toString().padStart(2, '0');
     const minutes = dateParts.mi.toString().padStart(2, '0');
 
@@ -121,7 +121,7 @@
     if (!dateParts) return;
 
     const [jy, jm, jd] = window.PersianDateConverter.gregorianToJalali(dateParts.y, dateParts.m, dateParts.d);
-    const faHint = `${jd} ${JALALI_MONTH_NAMES[jm - 1]} ${jy}`;
+    const faHint = `${jd} ${window.PersianDateConverter.PERSIAN_MONTHS[jm - 1]} ${jy}`;
 
     let hintEl = scheduleEl.querySelector('.persian-calendar-schedule');
     if (!hintEl) {
@@ -184,7 +184,9 @@
   const initGutenbergIntegration = () => {
     if (!isGutenbergEditor()) return;
 
+    let attempts = 0;
     const waitForDeps = () => {
+      attempts++;
       if (window.wp && wp.data && wp.data.select('core/editor') && window.PersianCalendar && window.PersianDateConverter) {
         document.querySelectorAll(SELECTORS_TO_CONVERT.join(', ')).forEach(el => {
           if (el.matches('.components-datetime-picker, .block-editor-publish-date-time-picker')) replaceDatePicker(el);
@@ -194,7 +196,7 @@
         });
 
         initUnifiedObserver();
-      } else {
+      } else if (attempts < 100) {
         setTimeout(waitForDeps, 100);
       }
     };

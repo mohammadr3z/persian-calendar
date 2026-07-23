@@ -1,0 +1,810 @@
+@font-face {
+    font-family: VazirmatnVF;
+    src: url("font/VazirMatn/VazirmatnVF.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* ──────────────────────────────────────────
+   Unified Jalali Calendar Popup Container Styles
+   (JetEngine, JetFormBuilder, JetBooking)
+   ────────────────────────────────────────── */
+
+.persian-calendar-popup,
+.persian-calendar-popup *,
+.vuejs-datepicker-wrapper-custom,
+.vuejs-datepicker-wrapper-custom *,
+.jet-abaf-jalali-range,
+.jet-abaf-jalali-range *,
+.persca-jalali-datepicker-popup,
+.persca-jalali-datepicker-popup *,
+.persca-bookings-timeline,
+.persca-bookings-timeline * {
+    box-sizing: border-box !important;
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.persian-calendar-popup,
+.jet-abaf-jalali-range,
+.persca-jalali-datepicker-popup {
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 8px !important;
+    direction: rtl;
+}
+
+.persian-calendar-popup,
+.persca-jalali-datepicker-popup {
+    padding: 16px !important;
+    width: 300px !important;
+}
+
+.jet-abaf-jalali-range {
+    --pc-day-size: 28px !important;
+    padding: 16px !important;
+}
+
+.jet-abaf-jalali-range.single-month {
+    width: 300px !important;
+}
+
+.jet-abaf-jalali-range.two-months {
+    width: 588px !important;
+}
+
+@media (max-width: 600px) {
+    .jet-abaf-jalali-range.two-months {
+        width: 300px !important;
+        flex-direction: column;
+    }
+
+    .jet-abaf-jalali-range .month-wrapper {
+        flex-direction: column;
+        gap: 16px;
+    }
+}
+
+.jet-abaf-jalali-range .month-wrapper {
+    display: flex !important;
+    gap: 16px !important;
+    justify-content: space-between !important;
+}
+
+.jet-abaf-jalali-range .month1,
+.jet-abaf-jalali-range .month2 {
+    width: 268px !important;
+    flex: 0 0 268px !important;
+}
+
+/* Ensure the calendar wrapper inside has no extra padding or border */
+.persian-calendar-popup .persian-calendar-wrapper,
+.jet-abaf-jalali-range .persian-calendar-wrapper,
+.persca-jalali-datepicker-popup .persian-calendar-wrapper {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Hide redundant parts inside the JetBooking range picker */
+.jet-abaf-jalali-range .persian-calendar-header,
+.jet-abaf-jalali-range .persian-calendar-date-title,
+.jet-abaf-jalali-range .persian-calendar-month-year,
+.jet-abaf-jalali-range .persian-calendar-time-title,
+.jet-abaf-jalali-range .persian-calendar-time,
+.jet-abaf-jalali-range .month1 .persian-calendar-next,
+.jet-abaf-jalali-range .month2 .persian-calendar-prev {
+    display: none !important;
+}
+
+.jet-abaf-jalali-range .persian-calendar-weekdays,
+.jet-abaf-jalali-range .persian-calendar-days,
+.persian-calendar-popup .persian-calendar-weekdays,
+.persian-calendar-popup .persian-calendar-days,
+.persca-jalali-datepicker-popup .persian-calendar-weekdays,
+.persca-jalali-datepicker-popup .persian-calendar-days {
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 0 !important;
+}
+
+/* Month and Year Header Layout (For single-month pickers) */
+.persian-calendar-popup .persian-calendar-month-year,
+.persca-jalali-datepicker-popup .persian-calendar-month-year {
+    display: flex !important;
+    gap: 6px !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 12px !important;
+}
+
+/* Base style for inputs and select in month-year header */
+.persian-calendar-popup .persian-calendar-day-display,
+.persian-calendar-popup select.persian-calendar-month,
+.persian-calendar-popup .persian-calendar-year-display,
+.persian-calendar-popup .persian-calendar-hour,
+.persian-calendar-popup .persian-calendar-minute,
+.jet-abaf-jalali-range .persian-calendar-day-display,
+.jet-abaf-jalali-range select.persian-calendar-month,
+.jet-abaf-jalali-range .persian-calendar-year-display,
+.jet-abaf-jalali-range .persian-calendar-hour,
+.jet-abaf-jalali-range .persian-calendar-minute,
+.persca-jalali-datepicker-popup .persian-calendar-day-display,
+.persca-jalali-datepicker-popup select.persian-calendar-month,
+.persca-jalali-datepicker-popup .persian-calendar-year-display,
+.persca-jalali-datepicker-popup .persian-calendar-hour,
+.persca-jalali-datepicker-popup .persian-calendar-minute {
+    height: 32px !important;
+    line-height: 30px !important;
+    padding: 0 8px !important;
+    border: 1px solid #ccc !important;
+    border-radius: 2px !important;
+    font-size: 13px !important;
+    background-color: #fff !important;
+    color: #1e1e1e !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+.persian-calendar-popup .persian-calendar-day-display,
+.persian-calendar-popup .persian-calendar-hour,
+.persian-calendar-popup .persian-calendar-minute,
+.jet-abaf-jalali-range .persian-calendar-day-display,
+.jet-abaf-jalali-range .persian-calendar-hour,
+.jet-abaf-jalali-range .persian-calendar-minute,
+.persca-jalali-datepicker-popup .persian-calendar-day-display,
+.persca-jalali-datepicker-popup .persian-calendar-hour,
+.persca-jalali-datepicker-popup .persian-calendar-minute {
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+}
+
+.persian-calendar-popup .persian-calendar-year-display,
+.jet-abaf-jalali-range .persian-calendar-year-display,
+.persca-jalali-datepicker-popup .persian-calendar-year-display {
+    width: 62px !important;
+    min-width: 62px !important;
+    max-width: 62px !important;
+}
+
+.persian-calendar-popup .persian-calendar-hour,
+.persian-calendar-popup .persian-calendar-minute,
+.jet-abaf-jalali-range .persian-calendar-hour,
+.jet-abaf-jalali-range .persian-calendar-minute,
+.persca-jalali-datepicker-popup .persian-calendar-hour,
+.persca-jalali-datepicker-popup .persian-calendar-minute {
+    display: inline-block !important;
+    -webkit-appearance: textfield !important;
+    -moz-appearance: textfield !important;
+    appearance: textfield !important;
+}
+
+.persian-calendar-popup .persian-calendar-time,
+.jet-abaf-jalali-range .persian-calendar-time,
+.persca-jalali-datepicker-popup .persian-calendar-time {
+    display: flex !important;
+    gap: 6px !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    margin-bottom: 12px !important;
+}
+
+.persian-calendar-popup .persian-calendar-time-inputs,
+.jet-abaf-jalali-range .persian-calendar-time-inputs,
+.persca-jalali-datepicker-popup .persian-calendar-time-inputs {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    border: none !important;
+    background: transparent !important;
+    direction: ltr !important;
+    padding: 0 !important;
+}
+
+.persian-calendar-popup .persian-calendar-time-inputs span,
+.jet-abaf-jalali-range .persian-calendar-time-inputs span,
+.persca-jalali-datepicker-popup .persian-calendar-time-inputs span {
+    font-size: 14px !important;
+    font-weight: bold !important;
+    color: #1e1e1e !important;
+    display: inline-block !important;
+    line-height: 32px !important;
+    vertical-align: middle !important;
+    margin: 0 2px !important;
+}
+
+.persian-calendar-popup .persian-calendar-day-display:focus,
+.persian-calendar-popup select.persian-calendar-month:focus,
+.persian-calendar-popup .persian-calendar-year-display:focus,
+.persian-calendar-popup .persian-calendar-hour:focus,
+.persian-calendar-popup .persian-calendar-minute:focus,
+.jet-abaf-jalali-range .persian-calendar-day-display:focus,
+.jet-abaf-jalali-range select.persian-calendar-month:focus,
+.jet-abaf-jalali-range .persian-calendar-year-display:focus,
+.jet-abaf-jalali-range .persian-calendar-hour:focus,
+.jet-abaf-jalali-range .persian-calendar-minute:focus,
+.persca-jalali-datepicker-popup .persian-calendar-day-display:focus,
+.persca-jalali-datepicker-popup select.persian-calendar-month:focus,
+.persca-jalali-datepicker-popup .persian-calendar-year-display:focus,
+.persca-jalali-datepicker-popup .persian-calendar-hour:focus,
+.persca-jalali-datepicker-popup .persian-calendar-minute:focus {
+    outline: none !important;
+    border-color: #3858e9 !important;
+    box-shadow: 0 0 0 2px rgba(56, 88, 233, 0.1) !important;
+}
+
+.persian-calendar-popup select.persian-calendar-month,
+.jet-abaf-jalali-range select.persian-calendar-month,
+.persca-jalali-datepicker-popup select.persian-calendar-month {
+    flex: 1 !important;
+    width: auto !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: left 8px center !important;
+    background-size: 14px !important;
+    padding-left: 24px !important;
+    padding-right: 8px !important;
+    text-align: right !important;
+    cursor: pointer !important;
+}
+
+/* Button style reset */
+.persian-calendar-popup .persian-calendar-prev,
+.persian-calendar-popup .persian-calendar-next,
+.persian-calendar-popup .persian-calendar-close-btn,
+.persian-calendar-popup .persian-calendar-now-btn,
+.jet-abaf-jalali-range .persian-calendar-prev,
+.jet-abaf-jalali-range .persian-calendar-next,
+.jet-abaf-jalali-range .persian-calendar-close-btn,
+.jet-abaf-jalali-range .persian-calendar-now-btn,
+.persca-jalali-datepicker-popup .persian-calendar-prev,
+.persca-jalali-datepicker-popup .persian-calendar-next,
+.persca-jalali-datepicker-popup .persian-calendar-close-btn,
+.persca-jalali-datepicker-popup .persian-calendar-now-btn {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    text-shadow: none !important;
+}
+
+.persian-calendar-popup .persian-calendar-prev,
+.persian-calendar-popup .persian-calendar-next,
+.jet-abaf-jalali-range .persian-calendar-prev,
+.jet-abaf-jalali-range .persian-calendar-next,
+.persca-jalali-datepicker-popup .persian-calendar-prev,
+.persca-jalali-datepicker-popup .persian-calendar-next {
+    width: 32px !important;
+    height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 20px !important;
+    color: #3858e9 !important;
+    border-radius: 2px !important;
+    transition: background-color 0.1s ease !important;
+}
+
+.persian-calendar-popup .persian-calendar-prev:hover,
+.persian-calendar-popup .persian-calendar-next:hover,
+.persian-calendar-popup .persian-calendar-now-btn:hover,
+.jet-abaf-jalali-range .persian-calendar-prev:hover,
+.jet-abaf-jalali-range .persian-calendar-next:hover,
+.jet-abaf-jalali-range .persian-calendar-now-btn:hover,
+.persca-jalali-datepicker-popup .persian-calendar-prev:hover,
+.persca-jalali-datepicker-popup .persian-calendar-next:hover,
+.persca-jalali-datepicker-popup .persian-calendar-now-btn:hover {
+    background-color: #f7f9fe !important;
+    color: #183ad6 !important;
+}
+
+.persian-calendar-popup .persian-calendar-prev:focus,
+.persian-calendar-popup .persian-calendar-next:focus,
+.persian-calendar-popup .persian-calendar-now-btn:focus,
+.jet-abaf-jalali-range .persian-calendar-prev:focus,
+.jet-abaf-jalali-range .persian-calendar-next:focus,
+.jet-abaf-jalali-range .persian-calendar-now-btn:focus,
+.persca-jalali-datepicker-popup .persian-calendar-prev:focus,
+.persca-jalali-datepicker-popup .persian-calendar-next:focus,
+.persca-jalali-datepicker-popup .persian-calendar-now-btn:focus {
+    background-color: #eff2fe !important;
+    color: #183ad6 !important;
+    outline: none !important;
+}
+
+.persian-calendar-popup .persian-calendar-close-btn,
+.jet-abaf-jalali-range .persian-calendar-close-btn,
+.persca-jalali-datepicker-popup .persian-calendar-close-btn {
+    display: none !important;
+}
+
+.persian-calendar-popup .persian-calendar-now-btn,
+.jet-abaf-jalali-range .persian-calendar-now-btn,
+.persca-jalali-datepicker-popup .persian-calendar-now-btn {
+    color: #3858e9 !important;
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+    border-radius: 2px !important;
+    transition: background-color 0.1s ease, color 0.1s ease !important;
+}
+
+/* ──────────────────────────────────────────
+   Unified Calendar Day Styles (Size, Shape, States)
+   ────────────────────────────────────────── */
+
+.persian-calendar-popup .persian-calendar-day,
+.jet-abaf-jalali-range .persian-calendar-day,
+.persca-jalali-datepicker-popup .persian-calendar-day {
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 14px !important;
+    height: 28px !important;
+    width: 28px !important;
+    line-height: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+}
+
+.persian-calendar-popup .persian-calendar-weekday,
+.jet-abaf-jalali-range .persian-calendar-weekday,
+.persca-jalali-datepicker-popup .persian-calendar-weekday {
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 13px !important;
+    height: 28px !important;
+    width: 28px !important;
+    line-height: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+}
+
+/* Unset explicit width/height on weekday header for range, use line-height */
+.jet-abaf-jalali-range .persian-calendar-weekday,
+.persian-calendar-popup .persian-calendar-weekday,
+.persca-jalali-datepicker-popup .persian-calendar-weekday {
+    width: 100% !important;
+    border-radius: 0 !important;
+}
+
+.jet-abaf-jalali-range .persian-calendar-day,
+.persian-calendar-popup .persian-calendar-day,
+.persca-jalali-datepicker-popup .persian-calendar-day {
+    width: 100% !important;
+    max-width: 28px !important;
+    margin: 0 auto !important;
+}
+
+/* Today state */
+.persian-calendar-popup .persian-calendar-day.today,
+.jet-abaf-jalali-range .persian-calendar-day.today,
+.persca-jalali-datepicker-popup .persian-calendar-day.today {
+    background: #e0e0e0 !important;
+}
+
+/* Selected state (All Calendars) */
+.persian-calendar-popup .persian-calendar-day.selected,
+.jet-abaf-jalali-range .persian-calendar-day.selected,
+.persca-jalali-datepicker-popup .persian-calendar-day.selected {
+    background: #3858e9 !important;
+    color: white !important;
+}
+
+/* Disabled state */
+.persian-calendar-popup .persian-calendar-day.disabled,
+.jet-abaf-jalali-range .persian-calendar-day.disabled,
+.persca-jalali-datepicker-popup .persian-calendar-day.disabled {
+    color: #b0b0b0 !important;
+    cursor: not-allowed !important;
+    background: transparent !important;
+}
+
+/* Range styles */
+.jet-abaf-jalali-range .persian-calendar-day.in-range,
+.jet-abaf-jalali-range .persian-calendar-day.disabled.in-range,
+.persian-calendar-popup .persian-calendar-day.in-range,
+.persian-calendar-popup .persian-calendar-day.disabled.in-range,
+.persca-jalali-datepicker-popup .persian-calendar-day.in-range,
+.persca-jalali-datepicker-popup .persian-calendar-day.disabled.in-range {
+    background-color: #f7f9fe !important;
+    color: #3858e9 !important;
+    border-radius: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    cursor: pointer !important;
+}
+
+.jet-abaf-jalali-range .persian-calendar-day.range-start,
+.jet-abaf-jalali-range .persian-calendar-day.disabled.range-start,
+.persian-calendar-popup .persian-calendar-day.range-start,
+.persian-calendar-popup .persian-calendar-day.disabled.range-start,
+.persca-jalali-datepicker-popup .persian-calendar-day.range-start,
+.persca-jalali-datepicker-popup .persian-calendar-day.disabled.range-start {
+    background-color: #3858e9 !important;
+    color: #ffffff !important;
+    border-top-right-radius: 50% !important;
+    border-bottom-right-radius: 50% !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    max-width: none !important;
+    width: 28px !important;
+    cursor: pointer !important;
+}
+
+.jet-abaf-jalali-range .persian-calendar-day.range-end,
+.jet-abaf-jalali-range .persian-calendar-day.disabled.range-end,
+.persian-calendar-popup .persian-calendar-day.range-end,
+.persian-calendar-popup .persian-calendar-day.disabled.range-end,
+.persca-jalali-datepicker-popup .persian-calendar-day.range-end,
+.persca-jalali-datepicker-popup .persian-calendar-day.disabled.range-end {
+    background-color: #3858e9 !important;
+    color: #ffffff !important;
+    border-top-left-radius: 50% !important;
+    border-bottom-left-radius: 50% !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    max-width: none !important;
+    width: 28px !important;
+    cursor: pointer !important;
+}
+
+.jet-abaf-jalali-range .persian-calendar-day.range-start.range-end,
+.jet-abaf-jalali-range .persian-calendar-day.disabled.range-start.range-end,
+.persian-calendar-popup .persian-calendar-day.range-start.range-end,
+.persian-calendar-popup .persian-calendar-day.disabled.range-start.range-end,
+.persca-jalali-datepicker-popup .persian-calendar-day.range-start.range-end,
+.persca-jalali-datepicker-popup .persian-calendar-day.disabled.range-start.range-end {
+    border-radius: 50% !important;
+    max-width: 28px !important;
+    margin: 0 auto !important;
+}
+
+/* ──────────────────────────────────────────
+   Backend: Misc JetBooking Overrides
+   ────────────────────────────────────────── */
+
+.persca-jalali-datepicker-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.persca-jalali-datepicker-wrapper input {
+    direction: rtl;
+}
+
+.persca-jalali-datepicker-popup {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 99999;
+    margin-top: 4px;
+}
+
+.jet-abaf-bookings-calendar .vc-day .jet-abaf-calendar-day-number {
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px;
+}
+
+.jet-abaf-bookings-calendar .vc-title {
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    direction: rtl;
+}
+
+.jet-abaf-bookings-calendar .vc-weekday {
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* ──────────────────────────────────────────
+   Backend: Custom RTL Gantt Chart
+   ────────────────────────────────────────── */
+
+.jet-abaf-bookings-timeline.persca-bookings-timeline {
+    direction: rtl;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ──────────────────────────────────────────
+   Backend: Booking info dates
+   ────────────────────────────────────────── */
+
+.jet-abaf-booking-data span,
+.jet-abaf-details-dates span {
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    direction: rtl;
+    unicode-bidi: embed;
+}
+
+.jet-abaf-gc-datepicker .persca-jalali-datepicker-wrapper,
+.jet-abaf-filter .persca-jalali-datepicker-wrapper {
+    width: 100%;
+}
+
+.jet-abaf-gc-datepicker .persca-jalali-datepicker-popup,
+.jet-abaf-filter .persca-jalali-datepicker-popup {
+    min-width: 290px;
+}
+
+/* ──────────────────────────────────────────
+   Backend: Custom Bookings Calendar styling to mimic v-calendar layout
+   ────────────────────────────────────────── */
+
+.jet-abaf-bookings-calendar.persca-bookings-calendar {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.persca-calendar-nav-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.persca-nav-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+    line-height: 1;
+    color: #4a5568;
+    padding: 4px 12px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.persca-nav-btn:hover {
+    background: #edf2f7;
+}
+
+.persca-calendar-nav-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2d3748;
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.persca-calendar-grid {
+    display: flex;
+    flex-direction: column;
+}
+
+.persca-calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 8px;
+    border-bottom: 1px solid #edf2f7;
+    padding-bottom: 8px;
+}
+
+.persca-calendar-weekday {
+    text-align: center;
+    font-weight: 600;
+    color: #718096;
+    font-size: 13px;
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.persca-calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(100px, auto);
+    gap: 1px;
+    background-color: #edf2f7;
+    border: 1px solid #edf2f7;
+}
+
+.persca-calendar-day {
+    background: #fff;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.persca-calendar-day.empty-day {
+    background: #f7fafc;
+}
+
+.persca-calendar-day .jet-abaf-calendar-day-number {
+    align-self: flex-end;
+    color: #4a5568;
+    font-weight: 500;
+    margin-bottom: 4px;
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.persca-calendar-day-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.jet-abaf-calendar-day-booking {
+    margin-bottom: 2px;
+}
+
+/* Timeline Custom Header */
+.jet-abaf-bookings-timeline .persca-calendar-nav-header {
+    background-color: #fff;
+    padding: 16px;
+    margin-bottom: 0;
+    border-bottom: 1px solid #edf2f7;
+}
+
+/* Custom Gantt Layout */
+.persca-gantt-container {
+    overflow-x: auto;
+    direction: rtl;
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.persca-gantt-inner {
+    display: flex;
+    flex-direction: column;
+    min-height: 100px;
+    flex: 1;
+}
+
+.persca-gantt-header {
+    display: flex;
+    background-color: #f7fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.persca-gantt-day {
+    flex: 0 0 75px;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 13px;
+    color: #4a5568;
+    border-inline-end: 1px solid #e2e8f0;
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.persca-gantt-body {
+    position: relative;
+    flex: 1;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+}
+
+.persca-gantt-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    pointer-events: none;
+}
+
+.persca-gantt-grid-col {
+    flex: 0 0 75px;
+    border-inline-end: 1px dashed #e2e8f0;
+}
+
+.persca-gantt-row {
+    position: relative;
+    height: 44px;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.persca-gantt-row:last-child {
+    border-bottom: none;
+}
+
+.jet-abaf-gantt-block-item {
+    position: absolute;
+    top: 6px;
+    height: 32px;
+    line-height: 32px;
+    border-radius: 2px;
+    color: #23282d;
+    /* Default WP text color */
+    font-size: 13px;
+    padding: 0 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    z-index: 10;
+}
+
+.jet-abaf-gantt-block-item.notice {
+    background: #fff;
+    border-style: solid;
+    border-color: #c3c4c7;
+    border-width: 0 4px 0 0 !important;
+    margin: 0 !important;
+}
+
+.jet-abaf-gantt-block-item.notice-warning {
+    border-right-color: #dba617 !important;
+    background-color: #fef8ee !important;
+}
+
+.jet-abaf-gantt-block-item.notice-success {
+    border-right-color: #00a32a !important;
+    background-color: #eff9f1 !important;
+}
+
+.jet-abaf-gantt-block-item.notice-error {
+    border-right-color: #d63638 !important;
+    background-color: #fcf0f0 !important;
+}
+
+.jet-abaf-gantt-block-item.notice-info {
+    border-right-color: #72aee6 !important;
+    background-color: #f0f6fb !important;
+}
+
+.jet-abaf-gantt-block-item.notice:not(.notice-warning, .notice-error, .notice-success, .notice-info) {
+    background-color: #f5f5f5;
+}
+
+.jet-abaf-gantt-block-item:hover {
+    filter: brightness(0.95);
+    z-index: 11;
+}
+
+.persca-gantt-empty {
+    padding: 24px;
+    text-align: center;
+    color: #718096;
+    font-size: 14px;
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.jet-abaf-wrap {
+    margin: 10px 2px 0 20px;
+}
+
+/* Animation for opening the calendar popup */
+.persian-calendar-popup,
+.jet-abaf-jalali-range,
+.persca-jalali-datepicker-popup {
+    -webkit-animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
+    animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@-webkit-keyframes fpFadeInDown {
+    from { opacity: 0; -webkit-transform: translate3d(0, -20px, 0); transform: translate3d(0, -20px, 0); }
+    to { opacity: 1; -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); }
+}
+
+@keyframes fpFadeInDown {
+    from { opacity: 0; transform: translate3d(0, -20px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}

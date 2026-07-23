@@ -20,10 +20,11 @@
 }
 
 .persian-calendar-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #1a1a1a !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
 }
 
 .persian-calendar-now-btn {
@@ -33,13 +34,20 @@
   font-size: 11px;
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 2px;
   transition: none;
 }
 
 .persian-calendar-now-btn:hover {
-  background-color: color-mix(in srgb, #3858e9 4%, transparent);
+  background-color: #f7f9fe;
   color: #183ad6;
+}
+
+.persian-calendar-now-btn:focus,
+.persian-calendar-now-btn:active {
+  background-color: #eff2fe;
+  color: #183ad6;
+  outline: none;
 }
 
 /* Header Actions Container */
@@ -70,7 +78,7 @@
 }
 
 .persian-calendar-close-btn:focus {
-  box-shadow: 0 0 0 var(--wp-admin-border-width-focus, 2px) var(--wp-components-color-accent, var(--wp-admin-theme-color, #3858e9));
+  box-shadow: 0 0 0 var(--wp-admin-border-width-focus, 2px) #3858e9;
   outline: 3px solid transparent;
 }
 
@@ -293,7 +301,17 @@ select.persian-calendar-month:focus {
 
 .persian-calendar-prev:hover,
 .persian-calendar-next:hover {
-  background-color: color-mix(in srgb, #3858e9 4%, transparent);
+  background-color: #f7f9fe;
+  color: #183ad6;
+}
+
+.persian-calendar-prev:focus,
+.persian-calendar-prev:active,
+.persian-calendar-next:focus,
+.persian-calendar-next:active {
+  background-color: #eff2fe;
+  color: #183ad6;
+  outline: none;
 }
 
 .persian-calendar-current-month {
@@ -365,9 +383,36 @@ select.persian-calendar-month:focus {
   color: #fff;
 }
 
+.persian-calendar-day.range-start,
+.persian-calendar-day.range-end {
+  background: #3858e9;
+  color: white;
+  font-weight: 500;
+}
+
+.persian-calendar-day.range-start {
+  border-top-right-radius: 50%;
+  border-bottom-right-radius: 50%;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.persian-calendar-day.range-end {
+  border-top-left-radius: 50%;
+  border-bottom-left-radius: 50%;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.persian-calendar-day.in-range {
+  background: rgba(56, 88, 233, 0.1);
+  color: #1e1e1e;
+  border-radius: 0;
+}
+
 .persian-calendar-day:not(.empty):focus,
 .persian-calendar-day:not(.empty):active {
-  box-shadow: 0 0 0 var(--wp-admin-border-width-focus, 2px) var(--wp-components-color-accent, var(--wp-admin-theme-color, #3858e9));
+  box-shadow: 0 0 0 var(--wp-admin-border-width-focus, 2px) #3858e9;
   outline: 3px solid transparent;
   color: #1e1e1e;
 }
@@ -381,6 +426,14 @@ select.persian-calendar-month:focus {
 .persian-calendar-day.empty {
   cursor: default;
   pointer-events: none;
+}
+
+.persian-calendar-day.disabled {
+  color: #ccc !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  opacity: 0.5 !important;
 }
 
 /* Responsive Design */

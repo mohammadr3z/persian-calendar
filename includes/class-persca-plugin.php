@@ -2,10 +2,10 @@
 
 /**
  * Persian Calendar Plugin Main Class
- * 
+ *
  * Handles the core functionality of the Persian Calendar plugin including
  * date conversion, timezone management, and WordPress integration.
- * 
+ *
  * @package PersianCalendar
  * @since 1.0.0
  */
@@ -16,23 +16,23 @@ if (! defined('ABSPATH')) {
 
 class PERSCA_Plugin
 {
-    /** 
+    /**
      * Date converter instance for Jalali calendar operations.
-     * 
-     * @var PERSCA_Date_Converter 
+     *
+     * @var PERSCA_Date_Converter
      */
     private $date;
 
-    /** 
+    /**
      * Plugin settings array cached from WordPress options.
-     * 
-     * @var array 
+     *
+     * @var array
      */
     private $settings;
 
     /**
      * Constructor - Initialize the plugin with date converter.
-     * 
+     *
      * @param PERSCA_Date_Converter $date_converter Instance of date converter class.
      */
     public function __construct(PERSCA_Date_Converter $date_converter)
@@ -43,7 +43,7 @@ class PERSCA_Plugin
 
     /**
      * Initialize plugin functionality based on user settings.
-     * 
+     *
      * Sets up WordPress hooks and filters for date conversion,
      * timezone management, and other Persian calendar features.
      */
@@ -60,10 +60,22 @@ class PERSCA_Plugin
         $this->settings = wp_parse_args($saved_settings, PERSCA_Admin::get_default_settings());
 
         // Load integrations
-        if ($this->is_setting_enabled('enable_integration_jet_engine')) {
-            $integration_file = PERSCA_PLUGIN_DIR . 'integrate/jet-engine.php';
-            if (file_exists($integration_file)) {
-                include_once $integration_file;
+        $integrations = [
+            'enable_integration_jet_engine'        => 'jet-engine.php',
+            'enable_integration_jet_form_builder'  => 'jet-form-builder.php',
+            'enable_integration_jet_booking'       => 'jet-booking.php',
+            'enable_integration_jet_smart_filters' => 'jet-smart-filters.php',
+            'enable_integration_edd'               => 'edd.php',
+        ];
+
+        require_once PERSCA_PLUGIN_DIR . 'integrate/persca-integration-helpers.php';
+
+        foreach ($integrations as $setting => $file) {
+            if ($this->is_setting_enabled($setting)) {
+                $integration_file = PERSCA_PLUGIN_DIR . 'integrate/' . $file;
+                if (file_exists($integration_file)) {
+                    include_once $integration_file;
+                }
             }
         }
         // Use classic editor if enabled
@@ -88,9 +100,6 @@ class PERSCA_Plugin
             add_filter('date_i18n', [$this, 'filter_date_i18n'], 10, 4);
             add_filter('wp_date', [$this, 'filter_wp_date'], 10, 4);
 
-            // Human time diff (relative time: "x minutes ago")
-            add_filter('human_time_diff', [$this, 'filter_human_time_diff'], 10, 4);
-
             // Comment dates
             add_filter('get_comment_date', [$this, 'filter_comment_date'], 10, 3);
             add_filter('get_comment_time', [$this, 'filter_comment_time'], 10, 5);
@@ -98,7 +107,6 @@ class PERSCA_Plugin
             // Post modified date/time
             add_filter('get_the_modified_date', [$this, 'filter_modified_date'], 10, 3);
             add_filter('get_the_modified_time', [$this, 'filter_modified_time'], 10, 3);
-            add_filter('get_post_time', [$this, 'filter_get_post_time'], 10, 3);
 
             // Admin date filter dropdown (render Jalali dates server-side)
             add_action('restrict_manage_posts', [$this, 'render_jalali_months_dropdown'], 5);
@@ -128,7 +136,7 @@ class PERSCA_Plugin
 
     /**
      * Filter WordPress date_i18n function to convert dates to Jalali.
-     * 
+     *
      * @param string $formatted The formatted date string.
      * @param string $format    PHP date format string.
      * @param int    $timestamp Unix timestamp.
@@ -157,7 +165,7 @@ class PERSCA_Plugin
 
     /**
      * Filter WordPress wp_date function for Jalali conversion.
-     * 
+     *
      * @param string             $formatted The formatted date string.
      * @param string             $format    PHP date format string.
      * @param int                $timestamp Unix timestamp (always UTC in wp_date).
@@ -175,56 +183,10 @@ class PERSCA_Plugin
         return $this->date->format_date((string) $format, (int) $timestamp, $convert_digits);
     }
 
-    /**
-     * Filter human_time_diff for Persian relative time strings.
-     * 
-     * Converts English time units to Persian equivalents for relative
-     * time displays like "2 hours ago" -> "۲ ساعت پیش".
-     * 
-     * @param string $since The human-readable time difference.
-     * @param int    $diff  The difference in seconds.
-     * @param int    $from  Unix timestamp from which the difference begins.
-     * @param int    $to    Unix timestamp to end the time difference.
-     * @return string Persian formatted time difference.
-     */
-    public function filter_human_time_diff($since, $diff, $from, $to)
-    {
-        $convert_digits = $this->is_setting_enabled('enable_persian_digits');
-
-        // Persian time unit translations
-        $units = [
-            'second' => 'ثانیه',
-            'seconds' => 'ثانیه',
-            'min' => 'دقیقه',
-            'mins' => 'دقیقه',
-            'minute' => 'دقیقه',
-            'minutes' => 'دقیقه',
-            'hour' => 'ساعت',
-            'hours' => 'ساعت',
-            'day' => 'روز',
-            'days' => 'روز',
-            'week' => 'هفته',
-            'weeks' => 'هفته',
-            'month' => 'ماه',
-            'months' => 'ماه',
-            'year' => 'سال',
-            'years' => 'سال',
-        ];
-
-        foreach ($units as $en => $fa) {
-            $since = str_ireplace($en, $fa, $since);
-        }
-
-        if ($convert_digits) {
-            $since = $this->date->to_persian_digits($since);
-        }
-
-        return $since;
-    }
 
     /**
      * Filter comment date for Jalali conversion.
-     * 
+     *
      * @param string     $date    The formatted date string.
      * @param string     $format  PHP date format.
      * @param WP_Comment $comment The comment object.
@@ -242,7 +204,7 @@ class PERSCA_Plugin
 
     /**
      * Filter comment time for Jalali conversion.
-     * 
+     *
      * @param string     $time      The formatted time string.
      * @param string     $format    PHP time format.
      * @param bool       $gmt       Whether to use GMT timezone.
@@ -271,7 +233,7 @@ class PERSCA_Plugin
 
     /**
      * Filter modified date for Jalali conversion.
-     * 
+     *
      * @param string  $date   The formatted date string.
      * @param string  $format PHP date format.
      * @param WP_Post $post   The post object.
@@ -289,7 +251,7 @@ class PERSCA_Plugin
 
     /**
      * Filter modified time for Jalali conversion.
-     * 
+     *
      * @param string  $time   The formatted time string.
      * @param string  $format PHP time format.
      * @param WP_Post $post   The post object.
@@ -303,39 +265,6 @@ class PERSCA_Plugin
         $format = $format ?: get_option('time_format');
         $convert_digits = $this->is_setting_enabled('enable_persian_digits');
         return $this->date->format_date($format, $post->post_modified, $convert_digits);
-    }
-
-    /**
-     * Filter post time for Jalali conversion.
-     * 
-     * @param string $time   The formatted time string.
-     * @param string $format PHP time format.
-     * @param bool   $gmt    Whether to use GMT timezone.
-     * @return string Jalali formatted time.
-     */
-    public function filter_get_post_time($time, $format, $gmt)
-    {
-        // Don't convert timestamp formats - WordPress needs numeric values
-        // 'U' = Unix timestamp, 'G' = 24-hour without leading zeros
-        if (in_array($format, ['U', 'G', ''], true)) {
-            return $time;
-        }
-
-        $post = get_post();
-        if (! $post) {
-            return $time;
-        }
-
-        $convert_digits = $this->is_setting_enabled('enable_persian_digits');
-
-        if ($gmt && !empty($post->post_date_gmt)) {
-            // GMT date - convert using timestamp (format_date handles UTC to Tehran)
-            $dt = new \DateTime($post->post_date_gmt, new \DateTimeZone('UTC'));
-            return $this->date->format_date($format, $dt->getTimestamp(), $convert_digits);
-        }
-
-        // Local date - pass as string (format_date interprets as Tehran time)
-        return $this->date->format_date($format, $post->post_date, $convert_digits);
     }
 
     /**
@@ -414,12 +343,12 @@ class PERSCA_Plugin
 
     /**
      * Render Jalali months dropdown (server-side).
-     * 
+     *
      * Renders custom months dropdown with Jalali dates directly in PHP,
      * so dates appear correctly immediately without JavaScript conversion.
-     * 
+     *
      * @since 1.2.3
-     * 
+     *
      * @param string $post_type Current post type being filtered.
      */
     public function render_jalali_months_dropdown($post_type = '')
@@ -527,7 +456,7 @@ class PERSCA_Plugin
 
         // Get first and last day of Jalali month in Gregorian
         $first_day = $this->date->jalali_to_gregorian($jy, $jm, 1);
-        $days_in_month = $this->get_jalali_month_days($jy, $jm);
+        $days_in_month = $this->date->days_in_jalali_month($jy, $jm);
         $last_day = $this->date->jalali_to_gregorian($jy, $jm, $days_in_month);
 
         // Remove year/monthnum to prevent WordPress from filtering by them
@@ -581,7 +510,7 @@ class PERSCA_Plugin
         $first_day = $this->date->jalali_to_gregorian($jy, $jm, 1);
 
         // Get number of days in this Jalali month
-        $days_in_month = $this->get_jalali_month_days($jy, $jm);
+        $days_in_month = $this->date->days_in_jalali_month($jy, $jm);
         $last_day = $this->date->jalali_to_gregorian($jy, $jm, $days_in_month);
 
         $start_date = sprintf('%04d-%02d-%02d 00:00:00', $first_day['y'], $first_day['m'], $first_day['d']);
@@ -600,40 +529,13 @@ class PERSCA_Plugin
     }
 
     /**
-     * Get number of days in a Jalali month.
-     *
-     * @since 1.2.4
-     *
-     * @param int $jy Jalali year.
-     * @param int $jm Jalali month (1-12).
-     * @return int Number of days in the month (29-31).
-     */
-    private function get_jalali_month_days($jy, $jm)
-    {
-        // Months 1-6 have 31 days
-        if ($jm <= 6) {
-            return 31;
-        }
-
-        // Months 7-11 have 30 days
-        if ($jm <= 11) {
-            return 30;
-        }
-
-        // Month 12 (Esfand) - 29 days normally, 30 in leap years
-        // Jalali leap year: remainder of (year / 33) is in [1, 5, 9, 13, 17, 22, 26, 30]
-        $leap_remainders = [1, 5, 9, 13, 17, 22, 26, 30];
-        return in_array($jy % 33, $leap_remainders) ? 30 : 29;
-    }
-
-    /**
      * Hide original WordPress months dropdown.
-     * 
+     *
      * Returns empty array to prevent WordPress from rendering
      * its own months dropdown (we render our own Jalali version).
-     * 
+     *
      * @since 1.2.3
-     * 
+     *
      * @param object[] $months    Array of month objects.
      * @param string   $post_type Current post type.
      * @return array Empty array to hide dropdown.
@@ -645,7 +547,7 @@ class PERSCA_Plugin
 
     /**
      * Set WordPress timezone to Asia/Tehran if enabled in settings.
-     * 
+     *
      * Updates the WordPress timezone_string option to Tehran timezone
      * when the user has enabled this feature.
      */
@@ -659,10 +561,10 @@ class PERSCA_Plugin
 
     /**
      * Set WordPress start of week to Saturday.
-     * 
+     *
      * Filters the start_of_week option to return Saturday (6)
      * which is the traditional start of week in Persian calendar.
-     * 
+     *
      * @param mixed $value Original start of week value.
      * @return int Saturday (6) as start of week.
      */
@@ -673,7 +575,7 @@ class PERSCA_Plugin
 
     /**
      * Enqueue Persian dashboard font CSS file.
-     * 
+     *
      * Loads the dashboard font stylesheet for better Persian
      * text rendering in WordPress admin area.
      */
@@ -689,7 +591,7 @@ class PERSCA_Plugin
 
     /**
      * Enqueue Gutenberg calendar assets.
-     * 
+     *
      * Loads JavaScript and CSS files required for Persian calendar
      * integration with Gutenberg block editor.
      */
@@ -724,7 +626,7 @@ class PERSCA_Plugin
 
     /**
      * Enqueue admin timewrap and inline edit assets.
-     * 
+     *
      * Loads JavaScript files required for Persian calendar
      * integration with WordPress admin timewrap and inline edit functionality.
      */
@@ -741,11 +643,20 @@ class PERSCA_Plugin
             return;
         }
 
+        // Enqueue main Persian calendar component (shared date converter)
+        wp_enqueue_script(
+            'persian-calendar-main',
+            PERSCA_PLUGIN_URL . 'assets/js/persian-calendar.js',
+            array(),
+            PERSCA_PLUGIN_VERSION,
+            true
+        );
+
         // Enqueue admin timewrap script
         wp_enqueue_script(
             'persian-calendar-admin-timewrap',
             PERSCA_PLUGIN_URL . 'assets/js/admin-timewrap.js',
-            array('jquery'),
+            array('jquery', 'persian-calendar-main'),
             PERSCA_PLUGIN_VERSION,
             true
         );
@@ -789,7 +700,7 @@ class PERSCA_Plugin
 
     /**
      * Register WordPress activation and deactivation hooks.
-     * 
+     *
      * @param string $plugin_file Main plugin file path.
      */
     public static function register_hooks($plugin_file): void
@@ -819,7 +730,7 @@ class PERSCA_Plugin
 
     /**
      * Disable Gutenberg editor for posts.
-     * 
+     *
      * This method disables the Gutenberg editor and enables
      * the classic editor for posts.
      */

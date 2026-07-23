@@ -45,26 +45,6 @@ class PERSCA_Date_Converter
     ];
 
     /**
-     * Persian month names in abbreviated format.
-     * 
-     * @var string[] Array of shortened Persian month names.
-     */
-    private $months_fa_short = [
-        1 => 'فرو',
-        2 => 'ارد',
-        3 => 'خرد',
-        4 => 'تیر',
-        5 => 'مرد',
-        6 => 'شهر',
-        7 => 'مهر',
-        8 => 'آبا',
-        9 => 'آذر',
-        10 => 'دی',
-        11 => 'بهم',
-        12 => 'اسف'
-    ];
-
-    /**
      * Persian weekday names in full format.
      * 
      * @var string[] Array indexed by PHP's date('w') values (0=Sunday, 6=Saturday).
@@ -136,21 +116,6 @@ class PERSCA_Date_Converter
     public function get_persian_month_name(int $month): string
     {
         return $this->months_fa[$month] ?? '';
-    }
-
-    /**
-     * Get Persian month name (short).
-     * 
-     * Returns the abbreviated Persian name for a given Jalali month number.
-     * 
-     * @since 1.2.3
-     * 
-     * @param int $month Jalali month number (1-12).
-     * @return string Abbreviated Persian month name.
-     */
-    public function get_persian_month_name_short(int $month): string
-    {
-        return $this->months_fa_short[$month] ?? '';
     }
 
     /**
@@ -408,5 +373,44 @@ class PERSCA_Date_Converter
         $en = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
         $fa = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
         return str_replace($en, $fa, $input);
+    }
+
+    /**
+     * Get the number of days in a given Jalali month.
+     *
+     * Single source of truth for Jalali month lengths and Esfand leap logic.
+     *
+     * @param int $jy Jalali year.
+     * @param int $jm Jalali month (1-12).
+     * @return int Number of days in the month (29-31).
+     */
+    public function days_in_jalali_month(int $jy, int $jm): int
+    {
+        if ($jm <= 6) {
+            return 31;
+        }
+        if ($jm <= 11) {
+            return 30;
+        }
+        // Esfand (month 12): 30 days in a leap year, otherwise 29.
+        $leap_remainders = [1, 5, 9, 13, 17, 22, 26, 30];
+        return in_array($jy % 33, $leap_remainders, true) ? 30 : 29;
+    }
+
+    /**
+     * Check if a Jalali date is valid.
+     * 
+     * @param int $jy Jalali year.
+     * @param int $jm Jalali month.
+     * @param int $jd Jalali day.
+     * @return bool True if valid, false otherwise.
+     */
+    public function is_valid_jalali(int $jy, int $jm, int $jd): bool
+    {
+        if ($jy < 1 || $jy > 3000 || $jm < 1 || $jm > 12 || $jd < 1) {
+            return false;
+        }
+
+        return $jd <= $this->days_in_jalali_month($jy, $jm);
     }
 }

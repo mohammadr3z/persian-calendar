@@ -398,39 +398,34 @@ input:checked + .persian-calendar-slider:before {
     opacity: 1;
 }
 
-/* Disabled row with overlay */
+/* Disabled Row Design */
 .persian-calendar-row-disabled {
-    position: relative;
+    background-color: #f4f7fe;
+    margin: 0 -20px;
+    padding: 15px 20px;
+    border-radius: 0;
 }
 
-.persian-calendar-disabled-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    z-index: 10;
-    border-radius: 4px;
+.persian-calendar-settings-icon-disabled {
+    background: #dbe5fc;
+    color: #3858e9;
+}
+
+.persian-calendar-disabled-warning {
+    color: #4f5a65;
+    font-weight: 500;
+}
+
+.persian-calendar-toggle-disabled {
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
-.persian-calendar-disabled-overlay .dashicons {
-    color: #a4afb7;
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+.persian-calendar-toggle-disabled input,
+.persian-calendar-toggle-disabled .persian-calendar-slider {
+    cursor: not-allowed;
 }
 
-.persian-calendar-disabled-message {
-    color: #6d7882;
-    font-size: 13px;
-    font-weight: 500;
-}
 
 
 @media (max-width: 768px) {
@@ -475,4 +470,22 @@ input:checked + .persian-calendar-slider:before {
     .persian-calendar-header h4 {
         margin: 15px 0 0 !important;
     }
+}
+
+/* Animation for opening the calendar popup */
+.persian-calendar-popup,
+.jet-abaf-jalali-range,
+.persca-jalali-datepicker-popup {
+    -webkit-animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
+    animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@-webkit-keyframes fpFadeInDown {
+    from { opacity: 0; -webkit-transform: translate3d(0, -20px, 0); transform: translate3d(0, -20px, 0); }
+    to { opacity: 1; -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); }
+}
+
+@keyframes fpFadeInDown {
+    from { opacity: 0; transform: translate3d(0, -20px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
