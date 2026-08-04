@@ -13,12 +13,7 @@
     '.block-editor-publish-date-time-picker'
   ];
 
-  const toPersianDigits = (str) => {
-    if (window.PersianCalendarIntegrations && window.PersianCalendarIntegrations.toPersianDigits) {
-      return window.PersianCalendarIntegrations.toPersianDigits(str);
-    }
-    return str;
-  };
+  const toPersianDigits = (str) => window.PersianDateConverter.toPersianDigits(str);
 
   const isGutenbergEditor = () => {
     return document.body.classList.contains('block-editor-page') ||

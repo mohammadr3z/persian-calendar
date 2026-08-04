@@ -78,7 +78,12 @@
             const $visibleInput = $(this);
             if (isJetEngineElement($visibleInput)) {
                 if (isTimeField($visibleInput, options)) {
-                    if (originalDatepicker) {
+                    var handledTime = false;
+                    if (window.PersianCalendarIntegrations && window.PersianCalendarIntegrations.setupJalaliTimePicker) {
+                        var $altTime = (options && options.altField) ? $(options.altField) : null;
+                        handledTime = window.PersianCalendarIntegrations.setupJalaliTimePicker($visibleInput, $altTime, $);
+                    }
+                    if (!handledTime && originalDatepicker) {
                         originalDatepicker.call($visibleInput, options);
                     }
                     return;
@@ -128,7 +133,12 @@
             const $visibleInput = $(this);
             if (isJetEngineElement($visibleInput)) {
                 if (isTimeField($visibleInput, options)) {
-                    if (originalDatetimepicker) {
+                    var handledTime = false;
+                    if (window.PersianCalendarIntegrations && window.PersianCalendarIntegrations.setupJalaliTimePicker) {
+                        var $altTime = (options && options.altField) ? $(options.altField) : null;
+                        handledTime = window.PersianCalendarIntegrations.setupJalaliTimePicker($visibleInput, $altTime, $);
+                    }
+                    if (!handledTime && originalDatetimepicker) {
                         originalDatetimepicker.call($visibleInput, options);
                     }
                     return;
@@ -213,12 +223,22 @@
             '.cx-vui-component input.persian-calendar-input',
             '.cx-control input[type="date"]',
             '.cx-control input[type="datetime-local"]',
-            '.cx-control input.persian-calendar-input'
+            '.cx-control input.persian-calendar-input',
+            'input.jet-form__field[type="time"]',
+            'input.jet-form-builder__field[type="time"]',
+            '.jet-form input[type="time"]',
+            '.jet-form-builder input[type="time"]',
+            'input.cx-vui-input[type="time"]',
+            '.cx-vui-component input[type="time"]',
+            '.cx-control input[type="time"]'
         ];
 
         $ctx.find(selectors.join(', ')).each(function() {
             const $visibleInput = $(this);
             if (isTimeField($visibleInput)) {
+                if (window.PersianCalendarIntegrations && window.PersianCalendarIntegrations.setupJalaliTimePicker) {
+                    window.PersianCalendarIntegrations.setupJalaliTimePicker($visibleInput, null, $);
+                }
                 return;
             }
             let isTime = false;

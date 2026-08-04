@@ -46,6 +46,10 @@ jQuery(document).ready(function () {
     /*
      * Edit inline
      */
+    function pad2(val) {
+        return String(val).padStart(2, '0');
+    }
+
     function jalaliTimestampDiv(year, mon, day, hour, minu) {
         // Validate and sanitize inputs
         year = safeParseInt(year, 1400, 1, 3000);
@@ -54,8 +58,12 @@ jQuery(document).ready(function () {
         hour = safeParseInt(hour, 0, 0, 23);
         minu = safeParseInt(minu, 0, 0, 59);
 
+        const formattedDay = pad2(day);
+        const formattedHour = pad2(hour);
+        const formattedMinu = pad2(minu);
+
         let div = '<div class="timestamp-wrap jalali">' +
-            '<label><input type="text" id="jja" name="jja" value="' + day + '" size="2" maxlength="2" autocomplete="off" /></label>' +
+            '<label><input type="text" id="jja" name="jja" value="' + formattedDay + '" size="2" maxlength="2" autocomplete="off" /></label>' +
             '<label><select id="mma" name="mma">';
         for (let i = 1; i < 13; i++) {
             if (i == mon)
@@ -66,8 +74,8 @@ jQuery(document).ready(function () {
         div += '</select></label>' +
 
             '<label><input type="text" id="aaa" name="aaa" value="' + year + '" size="4" maxlength="4" autocomplete="off" /></label> در ' +
-            '<input type="text" id="mna" name="mna" value="' + minu + '" size="2" maxlength="2" autocomplete="off" />:' +
-            '<input type="text" id="hha" name="hha" value="' + hour + '" size="2" maxlength="2" autocomplete="off" />' +
+            '<input type="text" id="mna" name="mna" value="' + formattedMinu + '" size="2" maxlength="2" autocomplete="off" />:' +
+            '<input type="text" id="hha" name="hha" value="' + formattedHour + '" size="2" maxlength="2" autocomplete="off" />' +
             '</div>';
         return div;
     }
@@ -98,29 +106,29 @@ jQuery(document).ready(function () {
         const val = jQuery(this).val();
         if (val === '') return;
         const hour = safeParseInt(val, 0, 0, 23);
-        if (jQuery(this).val() !== String(hour)) {
-            jQuery(this).val(hour);
-        }
-        jQuery('input[name=hh]').val(hour);
+        jQuery('input[name=hh]').val(pad2(hour));
     });
 
     jQuery('#timestampdiv,.inline-edit-date').on('blur', '#hha', function () {
         const hour = safeParseInt(jQuery(this).val(), 0, 0, 23);
-        jQuery(this).val(hour);
-        jQuery('input[name=hh]').val(hour);
+        const formattedHour = pad2(hour);
+        jQuery(this).val(formattedHour);
+        jQuery('input[name=hh]').val(formattedHour);
     });
 
     jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#mna', function () {
         const val = jQuery(this).val();
         if (val === '') return;
         const minute = safeParseInt(val, 0, 0, 59);
-        jQuery('input[name=mn]').val(minute.toString().padStart(2, '0'));
+        jQuery('input[name=mn]').val(pad2(minute));
     });
 
     // Apply padding only on blur (when user finishes typing)
     jQuery('#timestampdiv,.inline-edit-date').on('blur', '#mna', function () {
         const minute = safeParseInt(jQuery(this).val(), 0, 0, 59);
-        jQuery(this).val(minute.toString().padStart(2, '0'));
+        const formattedMinu = pad2(minute);
+        jQuery(this).val(formattedMinu);
+        jQuery('input[name=mn]').val(formattedMinu);
     });
 
     jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#aaa , #jja', function () {

@@ -1,0 +1,274 @@
+/**
+ * Persian Calendar - Jalali range picker for WooCommerce Analytics.
+ *
+ * WooCommerce renders a react-dates DayPicker inside
+ * .woocommerce-calendar__react-dates. That widget is Gregorian to the bone:
+ * Sunday-first week headers, Gregorian day numbers and an English caption
+ * format. It is hidden (never removed, so React keeps owning its own nodes)
+ * and this stylesheet dresses the Jalali grid the bridge script injects
+ * right next to it.
+ *
+ * @package PersianCalendar
+ * @since   1.4.0
+ */
+
+/* Hidden by the stylesheet, not by a class the script has to add first: React
+   mounts this grid the moment the dropdown opens, so waiting for JS to tag it
+   let the Gregorian picker paint for a frame - the visible jump. */
+.woocommerce-calendar .woocommerce-calendar__react-dates {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Same reasoning for the fields: the Gregorian value must never paint, not
+   even for the frame before the Jalali layer is attached. */
+.woocommerce-calendar__input .woocommerce-calendar__input-text {
+    color: transparent;
+    caret-color: #757575;
+}
+
+.woocommerce-calendar__input .woocommerce-calendar__input-text::-moz-placeholder {
+    color: transparent;
+}
+
+.woocommerce-calendar__input .woocommerce-calendar__input-text::placeholder {
+    color: transparent;
+}
+
+.persca-wc-cal {
+    direction: rtl;
+    padding: 12px 10px 14px;
+    font-family: 'VazirmatnVF', inherit, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-user-select: none;
+    user-select: none;
+    background-color: #f0f0f0;
+    border-top: 0;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.persca-wc-cal:focus {
+    outline: none;
+}
+
+.persca-wc-cal__nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.persca-wc-cal__caption {
+    font-size: 14px;
+    font-weight: 600;
+    color: #484848;
+}
+
+.persca-wc-cal__nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #e4e7e7;
+    border-radius: 3px;
+    background: #fff;
+    color: #757575;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.persca-wc-cal__nav-btn:hover:not(:disabled),
+.persca-wc-cal__nav-btn:focus:not(:disabled) {
+    background: #fff;
+    border-color: #c4c4c4;
+}
+
+.persca-wc-cal__nav-btn:active:not(:disabled) {
+    background: #f2f2f2;
+}
+
+.persca-wc-cal__nav-btn:disabled {
+    border-color: #f2f2f2;
+    cursor: default;
+}
+
+.persca-wc-cal__weekdays,
+.persca-wc-cal__grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 38px;
+    gap: 0;
+    overflow: visible;
+}
+
+.persca-wc-cal__weekdays {
+    margin-bottom: 4px;
+}
+
+.persca-wc-cal__weekday {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #757575;
+    padding: 4px 0;
+}
+
+.persca-wc-cal__day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: 38px;
+    padding: 0;
+    border: none;
+    box-shadow: inset 0 0 0 1px #e4e7e7;
+    border-radius: 0;
+    background: #fff;
+    color: #484848;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color .12s ease, color .12s ease, box-shadow .12s ease;
+}
+
+.persca-wc-cal__day.is-empty {
+    box-shadow: none;
+    background: transparent;
+    cursor: default;
+}
+
+.persca-wc-cal__day:hover:not(:disabled):not(.is-empty) {
+    background: #e4e7e7;
+    box-shadow: inset 0 0 0 1px #e4e7e7;
+    color: inherit;
+}
+
+.persca-wc-cal__day:disabled {
+    background: #fff;
+    box-shadow: inset 0 0 0 1px #e4e7e7;
+    color: #ccc;
+    cursor: default;
+}
+
+.persca-wc-cal__day.is-in-range {
+    background: var(--wp-admin-theme-color, #007cba);
+    box-shadow: inset 0 0 0 1px #ccc;
+    color: #fff;
+}
+
+.persca-wc-cal__day.is-in-range:hover {
+    background: var(--wp-admin-theme-color-darker-10, #006ba1);
+    box-shadow: inset 0 0 0 1px #f0f0f0;
+}
+
+.persca-wc-cal__day.is-selected {
+    background: var(--wp-admin-theme-color-darker-20, #005a87);
+    box-shadow: inset 0 0 0 1px #ccc;
+    color: #fff;
+}
+
+.persca-wc-cal__day.is-selected:hover {
+    background: var(--wp-admin-theme-color-darker-10, #006ba1);
+    box-shadow: inset 0 0 0 1px #f0f0f0;
+}
+
+/* The two text inputs keep WooCommerce's Gregorian value, because that is what
+   its React state parses. The field itself is made invisible (see the rules at
+   the top of this file) and this layer paints the Jalali date in its place, so
+   the Gregorian value never shows - not even while the field is focused. The
+   field's own box, focus ring and calendar icon are left untouched. */
+.woocommerce-calendar__input {
+    position: relative;
+}
+
+.persca-wc-cal__shadow {
+    position: absolute;
+    box-sizing: border-box;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    left: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 30px 0 10px;
+    background: transparent;
+    color: #757575;
+    font-size: 13px;
+    font-size: 0.8125rem;
+    line-height: 1;
+    direction: rtl;
+    white-space: nowrap;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.persca-wc-cal__shadow.is-placeholder {
+    color: #757575;
+    opacity: .75;
+}
+
+
+/* Touch layout: fingers need 44px targets, and the mobile dropdown is a full
+   screen sheet, so the grid gets room to breathe and its own scroll. */
+@media (max-width: 782px), (pointer: coarse) {
+    .persca-wc-cal {
+        padding: 14px 12px 18px;
+    }
+
+    .persca-wc-cal__grid {
+        grid-auto-rows: 44px;
+        gap: 2px;
+    }
+
+    .persca-wc-cal__day {
+        height: 44px;
+        font-size: 15px;
+    }
+
+    .persca-wc-cal__nav-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+
+    .persca-wc-cal__caption {
+        font-size: 15px;
+    }
+
+    .persca-wc-cal__weekday {
+        font-size: 12px;
+    }
+}
+
+.woocommerce-filters-date__content.is-mobile .persca-wc-cal {
+    max-height: 60vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Pressed state: touch has no hover, so the tap needs its own feedback. */
+.persca-wc-cal__day:not(:disabled):active,
+.persca-wc-cal__nav-btn:not(:disabled):active {
+    background-color: #dcdcde;
+}
+
+.persca-wc-cal__day.is-selected:active {
+    background-color: #007cba;
+}

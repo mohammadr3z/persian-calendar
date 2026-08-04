@@ -7,6 +7,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/* =============================================================================
+ * ASSETS & DEPENDENCIES
+ * ========================================================================== */
+
 add_action('admin_enqueue_scripts', 'persca_jet_form_builder_enqueue_assets', 20);
 add_action('wp_enqueue_scripts', 'persca_jet_form_builder_enqueue_assets', 20);
 
@@ -15,8 +19,19 @@ add_action('wp_default_scripts', 'persca_jet_form_builder_add_dependencies', 100
 add_action('admin_enqueue_scripts', 'persca_jet_form_builder_add_dependencies', 100);
 add_action('wp_enqueue_scripts', 'persca_jet_form_builder_add_dependencies', 100);
 
+// Form records, payments and success messages are delivered over JetFormBuilder's
+// own REST routes, so their human readable dates must stay Jalali.
+if (function_exists('persca_keep_jalali_on_rest_routes')) {
+    persca_keep_jalali_on_rest_routes(
+        array('jet-fb', 'jet-form-builder'),
+        static function () {
+            return function_exists('jet_form_builder');
+        }
+    );
+}
+
 function persca_jet_form_builder_enqueue_assets() {
-    if (!function_exists('jet_form_builder')) {
+    if (!persca_is_jalali_enabled() || !function_exists('jet_form_builder')) {
         return;
     }
 
@@ -34,6 +49,10 @@ function persca_jet_form_builder_enqueue_assets() {
 }
 
 function persca_jet_form_builder_add_dependencies() {
+    if (!persca_is_jalali_enabled()) {
+        return;
+    }
+
     persca_inject_dependency(array(
         'jet-form-builder-frontend-forms',
         'jfb-records',

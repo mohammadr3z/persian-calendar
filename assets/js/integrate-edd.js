@@ -32,44 +32,24 @@
 
     var originalDatepicker = null;
 
-    var PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-    var PERSIAN_MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+    var converter = window.PersianDateConverter || {};
+    var PERSIAN_MONTHS = converter.PERSIAN_MONTHS || [];
 
     function toPersianDigits(str) {
-        return String(str).replace(/[0-9]/g, function (d) { return PERSIAN_DIGITS[+d]; });
+        return converter.toPersianDigits ? converter.toPersianDigits(str) : String(str);
     }
 
     function pad(n) {
-        return String(n).length < 2 ? '0' + n : String(n);
+        return converter.padZero ? converter.padZero(n) : (String(n).length < 2 ? '0' + n : String(n));
     }
 
     function maybeDigits(str) {
         return usePersianDigits ? toPersianDigits(str) : str;
     }
 
-    // Gregorian -> Jalali (same algorithm as the plugin's PHP converter).
+    // Gregorian -> Jalali conversion using core converter.
     function gregorianToJalali(gy, gm, gd) {
-        var gDaysInMonth = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-        var gy2 = (gm > 2) ? (gy + 1) : gy;
-        var days = 355666 + (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) +
-            Math.floor((gy2 + 399) / 400) + gd + gDaysInMonth[gm - 1];
-        var jy = -1595 + 33 * Math.floor(days / 12053);
-        days %= 12053;
-        jy += 4 * Math.floor(days / 1461);
-        days %= 1461;
-        if (days > 365) {
-            jy += Math.floor((days - 1) / 365);
-            days = (days - 1) % 365;
-        }
-        var jm, jd;
-        if (days < 186) {
-            jm = 1 + Math.floor(days / 31);
-            jd = 1 + (days % 31);
-        } else {
-            jm = 7 + Math.floor((days - 186) / 30);
-            jd = 1 + ((days - 186) % 30);
-        }
-        return [jy, jm, jd];
+        return converter.gregorianToJalali ? converter.gregorianToJalali(gy, gm, gd) : [gy, gm, gd];
     }
 
     /* =========================================================================
@@ -194,9 +174,28 @@
     }
 
     // Override the Chart.js date adapter's format() so time axes render Jalali.
+    // Force the Persian font on the canvas-drawn chart text (axis ticks incl.
+    // the day-of-month numbers, tooltips and legend). Canvas text ignores CSS,
+    // so the dashboard-font.css `!important` rule never reaches the chart. The
+    // only way to style it is through Chart.js's own font defaults.
+    function applyChartFont(C) {
+        try {
+            var fontStack = "'VazirmatnVF', Tahoma, sans-serif";
+            if (C && C.defaults) {
+                if (C.defaults.global) {            // Chart.js v2
+                    C.defaults.global.defaultFontFamily = fontStack;
+                }
+                if (C.defaults.font) {              // Chart.js v3+
+                    C.defaults.font.family = fontStack;
+                }
+            }
+        } catch (e) {}
+    }
+
     function applyChartAdapter() {
         try {
             var C = window.Chart;
+            applyChartFont(C);
             if (C && C._adapters && C._adapters._date &&
                 typeof C._adapters._date.override === 'function') {
                 var proto = C._adapters._date.prototype;
@@ -625,6 +624,15 @@
     function markDatesReady() {
         if (document.body) { document.body.classList.add('persca-dates-ready'); }
     }
+
+    // Ask the browser to fetch VazirmatnVF up front so it is ready in the font
+    // cache before Chart.js paints the canvas (canvas can only draw an
+    // already-loaded font). Harmless if the API is unavailable.
+    try {
+        if (document.fonts && typeof document.fonts.load === 'function') {
+            document.fonts.load("14px VazirmatnVF");
+        }
+    } catch (e) {}
 
     $(function () {
         scanDateFields(document);

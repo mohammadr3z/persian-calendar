@@ -49,7 +49,9 @@
             'input.jet-form-builder__field.persian-calendar-input',
             '.jet-form-builder input[type="date"]',
             '.jet-form-builder input[type="datetime-local"]',
-            '.jet-form-builder input.persian-calendar-input'
+            '.jet-form-builder input.persian-calendar-input',
+            'input.jet-form-builder__field[type="time"]',
+            '.jet-form-builder input[type="time"]'
         ];
 
         if (!isJetEngineAdminPage) {
@@ -62,13 +64,19 @@
                 '.cx-vui-component input.persian-calendar-input',
                 '.cx-control input[type="date"]',
                 '.cx-control input[type="datetime-local"]',
-                '.cx-control input.persian-calendar-input'
+                '.cx-control input.persian-calendar-input',
+                'input.cx-vui-input[type="time"]',
+                '.cx-vui-component input[type="time"]',
+                '.cx-control input[type="time"]'
             ]);
         }
 
         $ctx.find(selectors.join(', ')).each(function() {
             const $visibleInput = $(this);
             if (isTimeField($visibleInput)) {
+                if (window.PersianCalendarIntegrations && window.PersianCalendarIntegrations.setupJalaliTimePicker) {
+                    window.PersianCalendarIntegrations.setupJalaliTimePicker($visibleInput, null, $);
+                }
                 return;
             }
             let isTime = false;
@@ -111,8 +119,8 @@
                             const node = mutation.addedNodes[i];
                             if (node.nodeType === 1) {
                                 const $node = $(node);
-                                if ($node.find('input[type="date"], input[type="datetime-local"], input.persian-calendar-input').length || 
-                                    $node.is('input[type="date"], input[type="datetime-local"], input.persian-calendar-input')) {
+                                if ($node.find('input[type="date"], input[type="datetime-local"], input[type="time"], input.persian-calendar-input').length || 
+                                    $node.is('input[type="date"], input[type="datetime-local"], input[type="time"], input.persian-calendar-input')) {
                                     needsInit = true;
                                     break;
                                 }

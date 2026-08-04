@@ -7,6 +7,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/* =============================================================================
+ * ASSETS & DEPENDENCIES
+ * ========================================================================== */
+
 // Frontend only: JetSmartFilters renders its filters on the front end, so the
 // integration assets must never load in wp-admin (avoids loading on unrelated
 // admin pages such as EDD, WooCommerce, settings, etc.).
@@ -20,7 +24,7 @@ add_action('wp_enqueue_scripts', 'persca_jet_smart_filters_add_dependencies', 10
  * Enqueue assets for JetSmartFilters integration.
  */
 function persca_jet_smart_filters_enqueue_assets() {
-    if (!class_exists('Jet_Smart_Filters')) {
+    if (!persca_is_jalali_enabled() || !class_exists('Jet_Smart_Filters')) {
         return;
     }
 
@@ -41,16 +45,24 @@ function persca_jet_smart_filters_enqueue_assets() {
  * Add JetSmartFilters integration script as a dependency of the official JetSmartFilters script.
  */
 function persca_jet_smart_filters_add_dependencies() {
+    if (!persca_is_jalali_enabled()) {
+        return;
+    }
+
     persca_inject_dependency(array(
         'jet-smart-filters',
     ), 'persca-integrate-jet-smart-filters');
 }
 
+/* =============================================================================
+ * REQUEST NORMALIZATION (Jalali -> Gregorian)
+ * ========================================================================== */
+
 // Convert Jalali date filters in the request to Gregorian before JetSmartFilters processes them
 add_filter('jet-smart-filters/query/request', 'persca_jet_smart_filters_filter_request', 10, 2);
 
 function persca_jet_smart_filters_filter_request($request, $query_manager) {
-    if (empty($request)) {
+    if (!persca_is_jalali_enabled() || empty($request)) {
         return $request;
     }
 

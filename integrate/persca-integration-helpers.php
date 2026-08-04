@@ -12,6 +12,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/* =============================================================================
+ * ASSETS & DEPENDENCIES
+ * ========================================================================== */
+
 if (!function_exists('persca_enqueue_core_assets')) {
     /**
      * Enqueue the shared Persian calendar core script and popup styles used by
@@ -69,6 +73,98 @@ if (!function_exists('persca_inject_dependency')) {
     }
 }
 
+/* =============================================================================
+ * REST ROUTE HELPERS
+ * ========================================================================== */
+
+if (!function_exists('persca_rest_route_matches')) {
+    /**
+     * Whether the current REST request targets one of the given route fragments.
+     *
+     * @param string[] $needles Lower-case route fragments, e.g. array('jet-abaf').
+     * @return bool
+     */
+    function persca_rest_route_matches(array $needles): bool
+    {
+        if (!defined('REST_REQUEST') || !REST_REQUEST) {
+            return false;
+        }
+
+        $route = '';
+
+        if (isset($GLOBALS['wp']) && isset($GLOBALS['wp']->query_vars['rest_route'])) {
+            $route = (string) $GLOBALS['wp']->query_vars['rest_route'];
+        }
+
+        if ('' === $route && isset($_SERVER['REQUEST_URI'])) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+            $route = (string) wp_unslash($_SERVER['REQUEST_URI']);
+        }
+
+        if ('' === $route) {
+            return false;
+        }
+
+        $route = strtolower($route);
+
+        foreach ($needles as $needle) {
+            if ('' !== $needle && false !== strpos($route, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+if (!function_exists('persca_keep_jalali_on_rest_routes')) {
+    /**
+     * Re-enable Jalali conversion for a plugin's own display oriented REST routes.
+     *
+     * Since 1.4.0 every REST request is treated as a machine context, so
+     * date_i18n()/wp_date() stop converting. That is correct for core routes
+     * (wp/v2), WooCommerce Analytics and exporters, which must stay Gregorian,
+     * but it also silenced the Jalali output of admin screens that are rendered
+     * from a plugin's own REST endpoints (JetBooking bookings calendar and
+     * timeline, JetEngine listings, JetFormBuilder records).
+     *
+     * Machine formats (c, r, U, DATE_ATOM ...) are still excluded upstream by
+     * PERSCA_Plugin::should_convert_date(), and only the passed route fragments
+     * are re-enabled.
+     *
+     * @param string[]      $needles     Lower-case route fragments to allow.
+     * @param callable|null $is_active   Optional callback that must return true.
+     * @return void
+     */
+    function persca_keep_jalali_on_rest_routes(array $needles, ?callable $is_active = null): void
+    {
+        add_filter(
+            'persca_should_convert_date',
+            static function ($should_convert, $format, $timestamp, $context) use ($needles, $is_active) {
+                if ($should_convert || 'rest' !== $context) {
+                    return $should_convert;
+                }
+
+                if (null !== $is_active && !$is_active()) {
+                    return $should_convert;
+                }
+
+                if (!persca_rest_route_matches($needles)) {
+                    return $should_convert;
+                }
+
+                return true;
+            },
+            10,
+            4
+        );
+    }
+}
+
+/* =============================================================================
+ * SHARED CONVERTER & SETTINGS HELPERS
+ * ========================================================================== */
+
 if (!function_exists('persca_get_converter')) {
     /**
      * Return a shared PERSCA_Date_Converter instance.
@@ -86,5 +182,22 @@ if (!function_exists('persca_get_converter')) {
             $converter = new PERSCA_Date_Converter();
         }
         return $converter;
+    }
+}
+
+if (!function_exists('persca_is_jalali_enabled')) {
+    /**
+     * Whether Jalali calendar conversion is globally enabled in plugin settings.
+     *
+     * @return bool
+     */
+    function persca_is_jalali_enabled(): bool
+    {
+        $opts = get_option('persca_options', array());
+        if (class_exists('PERSCA_Admin')) {
+            $defaults = PERSCA_Admin::get_default_settings();
+            $opts     = wp_parse_args($opts, $defaults);
+        }
+        return !empty($opts['enable_jalali']);
     }
 }

@@ -21,7 +21,7 @@
             if (isJetSmartFiltersElement($visibleInput)) {
                 let handled = false;
                 if (window.PersianCalendarIntegrations) {
-                    handled = setupJalaliDatePickerForJSF($visibleInput, $);
+                    handled = setupJalaliDatePickerForJSF($visibleInput, $, options);
                 }
                 if (!handled && originalDatepicker) {
                     originalDatepicker.call($visibleInput, options);
@@ -32,10 +32,16 @@
         });
     };
 
-    function setupJalaliDatePickerForJSF($visibleInput, $) {
+    function setupJalaliDatePickerForJSF($visibleInput, $, options) {
         if (typeof window.PersianCalendarIntegrations === 'undefined') return false;
         
         const initialVal = $visibleInput.val();
+
+        // Remember the date format JetSmartFilters asked for, so the value getter
+        // and the onSelect callback below hand back exactly what the filter expects.
+        if (options && options.dateFormat) {
+            $visibleInput.data('persca-jsf-format', options.dateFormat);
+        }
         
         // Delegate to the main integration handler for all popup and observer logic
         const handled = window.PersianCalendarIntegrations.setupJalaliDatePicker($visibleInput, null, false, $);
@@ -43,6 +49,10 @@
         if (handled) {
             // Re-override the value descriptor specifically for JetSmartFilters formats
             overrideJSFValueDescriptor($visibleInput[0], $);
+
+            // Replay the datepicker callbacks JetSmartFilters passed in, otherwise
+            // the filter never learns about the picked date and stays unapplied.
+            bindJSFDatepickerCallbacks($visibleInput, $, options);
             
             // Re-trigger setter to ensure initial value is parsed and converted to Jalali correctly
             if (initialVal) {
@@ -51,6 +61,60 @@
         }
         
         return handled;
+    }
+
+    /**
+     * Bridge our Jalali picker back into jQuery UI datepicker's contract.
+     *
+     * JetSmartFilters initialises the Date Range filter with
+     * $input.datepicker({ dateFormat, altField, onSelect }) and only records the
+     * chosen value inside that onSelect callback. Because this integration
+     * replaces $.fn.datepicker and never calls the original implementation, the
+     * callback used to be dropped: the visible input showed a Jalali date but
+     * the filter itself received nothing, so nothing was filtered.
+     *
+     * Here we listen for the change event dispatched by the Jalali popup and
+     * call onSelect (and fill altField) with the Gregorian date, formatted with
+     * the format JetSmartFilters requested.
+     */
+    function bindJSFDatepickerCallbacks($visibleInput, $, options) {
+        if (!options || typeof options.onSelect !== 'function') return;
+        if ($visibleInput.data('persca-jsf-callbacks-bound')) return;
+        $visibleInput.data('persca-jsf-callbacks-bound', true);
+
+        const $container = $visibleInput.closest('.jet-date-range');
+        const format = options.dateFormat
+            || $container.find('.jet-date-range__input').data('date-format')
+            || 'yy-mm-dd';
+
+        $visibleInput.on('change.perscaJsf', function () {
+            const isoVal = $(this).data('persian-gregorian-val');
+            if (!isoVal) return;
+
+            const d = window.PersianCalendarIntegrations.parseLocalDate(isoVal);
+            if (!d || isNaN(d.getTime())) return;
+
+            let dateText = isoVal;
+            if (window.jQuery && window.jQuery.datepicker) {
+                try {
+                    dateText = window.jQuery.datepicker.formatDate(format, d);
+                } catch (err) {}
+            }
+
+            if (options.altField) {
+                try { $(options.altField).val(dateText); } catch (err) {}
+            }
+
+            try {
+                options.onSelect.call(this, dateText, {
+                    input: $(this),
+                    selectedDay: d.getDate(),
+                    selectedMonth: d.getMonth(),
+                    selectedYear: d.getFullYear(),
+                    lastVal: dateText
+                });
+            } catch (err) {}
+        });
     }
 
     function overrideJSFValueDescriptor(el, $) {
@@ -63,7 +127,9 @@
                     const d = new Date(gregVal);
                     if (!isNaN(d.getTime())) {
                         const $container = $(this).closest('.jet-date-range');
-                        const format = $container.find('.jet-date-range__input').data('date-format') || 'mm/dd/yy';
+                        const format = $(this).data('persca-jsf-format')
+                            || $container.find('.jet-date-range__input').data('date-format')
+                            || 'mm/dd/yy';
                         if (window.jQuery && window.jQuery.datepicker) {
                             try {
                                 return window.jQuery.datepicker.formatDate(format, d);
@@ -142,11 +208,11 @@
                 
                 let $popup = $input.data('persian-popup');
                 if (!$popup) {
-                    $popup = $('<div class="persian-calendar-popup" style="display:none; position:absolute; z-index:999999; background:#fff; box-shadow:0 4px 20px rgba(0,0,0,0.15); border:1px solid #edf2f7; border-radius:8px; padding:15px; width:280px;"></div>');
+                    $popup = $('<div class="persian-calendar-popup" style="display:none; position:absolute; z-index:999999; pointer-events:auto; background:#fff; box-shadow:0 4px 20px rgba(0,0,0,0.15); border:1px solid #edf2f7; border-radius:8px; padding:15px; width:280px;"></div>');
                     $popup.on('click mousedown mouseup pointerdown pointerup touchstart touchend', function(e) {
                         e.stopPropagation();
                     });
-                    const $parentPopup = $input.closest('.elementor-popup-modal, .jet-popup, .dialog-widget, .jet-popup-container');
+                    const $parentPopup = $input.closest('.jet-popup__container-inner, .dialog-widget-content, .elementor-popup-modal, .jet-popup-container, .jet-popup, .dialog-widget');
                     if ($parentPopup.length) {
                         $parentPopup.append($popup);
                     } else {
@@ -218,6 +284,79 @@
                     selectedDates: []
                 };
 
+                /**
+                 * Parse one Gregorian date or a Gregorian date range.
+                 *
+                 * Supported examples:
+                 * 2026-08-01
+                 * 2026/08/01
+                 * 2026.08.01
+                 * 2026-08-01 - 2026-08-10
+                 *
+                 * @param {string} value
+                 * @return {{ start: Date|null, end: Date|null }}
+                 */
+                const parseGregorianDateValue = function(value) {
+                    const result = {
+                        start: null,
+                        end: null
+                    };
+
+                    if (typeof value !== 'string' || !value.trim()) {
+                        return result;
+                    }
+
+                    /*
+                     * Extract dates directly so that the hyphens inside
+                     * YYYY-MM-DD are not confused with the range separator.
+                     */
+                    const matches = value.match(/\d{4}[\/.-]\d{1,2}[\/.-]\d{1,2}/g);
+
+                    if (!matches || !matches.length) {
+                        return result;
+                    }
+
+                    const createDate = function(dateString) {
+                        const normalized = dateString
+                            .replace(/[\/.]/g, '-')
+                            .split('-')
+                            .map(Number);
+
+                        if (normalized.length !== 3) {
+                            return null;
+                        }
+
+                        const year = normalized[0];
+                        const month = normalized[1];
+                        const day = normalized[2];
+
+                        const date = new Date(year, month - 1, day);
+
+                        /*
+                         * new Date() silently normalises invalid dates, e.g.
+                         * 2026-02-31 rolls over to the next month. This check
+                         * catches that.
+                         */
+                        if (
+                            date.getFullYear() !== year ||
+                            date.getMonth() !== month - 1 ||
+                            date.getDate() !== day
+                        ) {
+                            return null;
+                        }
+
+                        return date;
+                    };
+
+                    result.start = createDate(matches[0]);
+
+                    if (matches[1]) {
+                        result.end = createDate(matches[1]);
+                    }
+
+                    return result;
+                };
+
                 const updateDatesAndUI = function(dates) {
                     mockApi.selectedDates = dates;
                     if (options.onSelect) {
@@ -244,39 +383,57 @@
                         // AFTER options.onSelect has written the computed Gregorian range or date back to $input,
                         // we read it and update the button to display the Jalali equivalent!
                         const finalVal = $input.val();
-                        if (finalVal) {
-                            const parts = finalVal.split('-');
-                            if (parts.length >= 2) {
-                                const d1 = new Date(parts[0].replace(/\./g, '/'));
-                                const d2 = new Date(parts[1].replace(/\./g, '/'));
-                                if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
-                                    const js1 = mockApi.formatDate('', d1);
-                                    const js2 = mockApi.formatDate('', d2);
+                        const parsedValue = parseGregorianDateValue(finalVal);
+
+                        if (parsedValue.start) {
+                            const js1 = mockApi.formatDate('', parsedValue.start);
+                            const $button = $input
+                                .closest('.jet-date-period__datepicker')
+                                .find('.jet-date-period__datepicker-button');
+
+                            if ($button.length) {
+                                if (parsedValue.end) {
+                                    const js2 = mockApi.formatDate('', parsedValue.end);
+
                                     let sep = ' - ';
+
                                     try {
                                         const df = $input.data('format');
-                                        if (df && df.separator) sep = df.separator;
-                                    } catch (err) {}
-                                    
-                                    const $button = $input.closest('.jet-date-period__datepicker').find('.jet-date-period__datepicker-button');
-                                    if ($button.length) {
-                                        if (!$button.find('.jet-date-period-start').length) {
-                                            $button.html('<div class="jet-date-period-start">' + js1 + '</div><div class="jet-date-period-separator">' + sep + '</div><div class="jet-date-period-end">' + js2 + '</div>');
-                                        } else {
-                                            $button.find('.jet-date-period-start').text(js1);
-                                            $button.find('.jet-date-period-end').text(js2);
-                                            $button.find('.jet-date-period-separator').text(sep);
+
+                                        if (df && typeof df.separator === 'string') {
+                                            sep = df.separator;
                                         }
+                                    } catch (err) {}
+
+                                    if (!$button.find('.jet-date-period-start').length) {
+                                        /*
+                                         * Elements are static and date values are inserted
+                                         * via text(), so neither the separator nor the date
+                                         * is injected as raw HTML.
+                                         */
+                                        const $start = $('<div>', {
+                                            class: 'jet-date-period-start',
+                                            text: js1
+                                        });
+
+                                        const $separator = $('<div>', {
+                                            class: 'jet-date-period-separator',
+                                            text: sep
+                                        });
+
+                                        const $end = $('<div>', {
+                                            class: 'jet-date-period-end',
+                                            text: js2
+                                        });
+
+                                        $button.empty().append($start, $separator, $end);
+                                    } else {
+                                        $button.find('.jet-date-period-start').text(js1);
+                                        $button.find('.jet-date-period-separator').text(sep);
+                                        $button.find('.jet-date-period-end').text(js2);
                                     }
-                                }
-                            } else if (parts.length === 1) {
-                                const d1 = new Date(parts[0].replace(/\./g, '/'));
-                                if (!isNaN(d1.getTime())) {
-                                    const js1 = mockApi.formatDate('', d1);
-                                    const $button = $input.closest('.jet-date-period__datepicker').find('.jet-date-period__datepicker-button');
-                                    if ($button.length) {
-                                        $button.text(js1);
-                                    }
+                                } else {
+                                    $button.text(js1);
                                 }
                             }
                         }
@@ -288,21 +445,15 @@
                 let initialRangeEnd = null;
                 
                 const currentVal = $input.val();
-                if (currentVal) {
-                    const parts = currentVal.split('-');
-                    if (parts[0]) {
-                        const d1 = new Date(parts[0].replace(/\./g, '/'));
-                        if (!isNaN(d1.getTime())) {
-                            initialDate = d1;
-                            initialRangeStart = d1;
-                        }
-                    }
-                    if (parts[1]) {
-                        const d2 = new Date(parts[1].replace(/\./g, '/'));
-                        if (!isNaN(d2.getTime())) {
-                            initialRangeEnd = d2;
-                        }
-                    }
+                const initialValue = parseGregorianDateValue(currentVal);
+
+                if (initialValue.start) {
+                    initialDate = initialValue.start;
+                    initialRangeStart = initialValue.start;
+                }
+
+                if (initialValue.end) {
+                    initialRangeEnd = initialValue.end;
                 }
 
                 const calendar = new window.PersianCalendar(container, {

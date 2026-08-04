@@ -14,6 +14,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/* =============================================================================
+ * ASSETS & DEPENDENCIES
+ * ========================================================================== */
+
 // Enqueue integration assets on both frontend and admin
 add_action('admin_enqueue_scripts', 'persca_jet_booking_enqueue_assets', 20);
 add_action('wp_enqueue_scripts', 'persca_jet_booking_enqueue_assets', 20);
@@ -23,12 +27,23 @@ add_action('wp_default_scripts', 'persca_jet_booking_add_dependencies', 100);
 add_action('admin_enqueue_scripts', 'persca_jet_booking_add_dependencies', 100);
 add_action('wp_enqueue_scripts', 'persca_jet_booking_add_dependencies', 100);
 
+// The bookings calendar, timeline and details panel are rendered from
+// JetBooking's own REST endpoints, so those responses must stay Jalali.
+if (function_exists('persca_keep_jalali_on_rest_routes')) {
+    persca_keep_jalali_on_rest_routes(
+        array('jet-abaf', 'jet_abaf', 'jet-booking'),
+        static function () {
+            return class_exists('JET_ABAF\\Plugin') || defined('JET_ABAF_VERSION');
+        }
+    );
+}
+
 /**
  * Enqueue Persian Calendar integration scripts and styles for JetBooking.
  */
 function persca_jet_booking_enqueue_assets() {
-    // Only load if JetBooking is active
-    if (!class_exists('JET_ABAF\\Plugin') && !defined('JET_ABAF_VERSION')) {
+    // Only load if Jalali calendar is enabled and JetBooking is active
+    if (!persca_is_jalali_enabled() || (!class_exists('JET_ABAF\\Plugin') && !defined('JET_ABAF_VERSION'))) {
         return;
     }
 
@@ -60,6 +75,10 @@ function persca_jet_booking_enqueue_assets() {
  * so it loads before JetBooking initialises its datepickers.
  */
 function persca_jet_booking_add_dependencies() {
+    if (!persca_is_jalali_enabled()) {
+        return;
+    }
+
     // Load our overrides before JetBooking initialises its date pickers.
     persca_inject_dependency(array(
         // Original date range picker library.

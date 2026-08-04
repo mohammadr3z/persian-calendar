@@ -241,11 +241,17 @@
     background: #f1f3f5;
     width: 36px;
     height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    flex: 0 0 36px;
+    flex-shrink: 0;
+    box-sizing: border-box;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #a4afb7;
+    overflow: hidden;
 }
 
 .persian-calendar-settings-icon .dashicons {
@@ -488,4 +494,23 @@ input:checked + .persian-calendar-slider:before {
 @keyframes fpFadeInDown {
     from { opacity: 0; transform: translate3d(0, -20px, 0); }
     to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+/* Integration image icons */
+.persian-calendar-settings-icon-image {
+    background: transparent;
+    overflow: hidden;
+}
+
+.persian-calendar-settings-icon-image img.persian-calendar-settings-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+/* Not-installed integration: fade the image instead of showing a lock */
+.persian-calendar-settings-icon-image-disabled img.persian-calendar-settings-image {
+    opacity: 0.3;
+    filter: grayscale(100%);
 }

@@ -4,7 +4,7 @@ Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
 Tested up to: 7.0
 Requires PHP: 7.2
-Stable tag: 1.3.5
+Stable tag: 1.4.0
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,7 +25,7 @@ This plugin converts your WordPress website to the Jalali (Persian) calendar sys
 
 == Integrations ==
 
-This plugin features deep integration with Crocoblock JetPlugins to provide full Jalali calendar support:
+This plugin features deep integration with Crocoblock JetPlugins, EDD, and WooCommerce to provide full Jalali calendar support:
 
 *   **JetEngine Integration:** 
     *   Adds Jalali date picker support for JetEngine Meta Fields (Date, Datetime-local, Time).
@@ -40,9 +40,13 @@ This plugin features deep integration with Crocoblock JetPlugins to provide full
     *   Full Jalali date range picker support on frontend booking forms.
     *   Jalali calendar conversion in backend booking calendars, timelines, and booking details fields.
 *   **Easy Digital Downloads (EDD) Integration:**
-    *   Replaces every EDD jQuery UI date picker (`edd_datepicker`) with a Jalali (Shamsi) date picker: discount start/expiration dates, order date, customer "Date Created", the reports custom range, list-table date filters, and all CSV exporter From/To ranges.
-    *   Submitted Jalali dates are converted back to Gregorian automatically, so EDD keeps storing and querying native Gregorian dates (the database is never modified).
-    *   Localizes the Gregorian dates printed across EDD admin screens to the Jalali calendar, with optional Persian digits.
+    *   Full Shamsi (Jalali) calendar support across EDD admin pages: discount start/end dates, orders, customer dates, and reports.
+    *   Seamlessly converts Shamsi inputs back to standard date format behind the scenes without breaking EDD data.
+    *   Displays EDD store dates in Shamsi format with optional Persian digits.
+*   **WooCommerce Integration:**
+    *   Full Shamsi (Jalali) calendar and date picker support across WooCommerce admin screens: Orders, Coupons, Product Sale schedules, Downloads, and Reports.
+    *   Seamless Jalali date conversion for WooCommerce Flot reports and WooCommerce Analytics (React/D3) charts and tooltips.
+    *   Automatic Jalali to Gregorian date normalization on form submission to preserve database integrity.
 
 == Installation ==
 
@@ -66,10 +70,23 @@ No, the plugin is optimized and has minimal impact on performance.
 
 1. Plugin settings page
 2. Jalali calendar in Gutenberg editor
-3. Persian dates in dashboard
-4. Persian digit conversion
+3. WooCommerce reports
+4. EDD reports
 
 == Changelog ==
+
+= 1.4.0 =
+* Added WooCommerce Integration: Complete Jalali calendar support for WooCommerce orders, coupons, product schedules, reports, and analytics.
+* EDD Integration: Added zero currency decimals support for Easy Digital Downloads (EDD).
+* JetPopup & JetFormBuilder Fix: Fixed date picker popup element stacking, overlay z-index, and click-through issues when opening datepickers inside JetPopup and Elementor modals.
+* Performance Optimization: Optimized JavaScript integration scripts and centralized core date converter utilities.
+* Bug Fix: Fixed several date conversion and timezone issues, keeping machine readable output in Gregorian format.
+* Fixed the EDD Sales Summary dashboard widget not using Jalali month boundaries.
+* Admin Timewrap: Padded hour, minute, and day input fields with leading zeros (e.g. 03:24) in post quick edit and timestamp wrapper.
+
+
+= 1.3.6 =
+* New: Dedicated time picker for time-only fields (JetEngine & JetFormBuilder, front-end and admin).
 
 = 1.3.5 =
 * Added Easy Digital Downloads (EDD) Integration: Jalali calendar and date picker support for EDD admin screens, discount codes, reports, date filters

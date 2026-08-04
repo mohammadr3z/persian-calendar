@@ -59,22 +59,25 @@ class PERSCA_Plugin
         $saved_settings = get_option(PERSCA_Admin::OPTIONS_KEY, array());
         $this->settings = wp_parse_args($saved_settings, PERSCA_Admin::get_default_settings());
 
-        // Load integrations
-        $integrations = [
-            'enable_integration_jet_engine'        => 'jet-engine.php',
-            'enable_integration_jet_form_builder'  => 'jet-form-builder.php',
-            'enable_integration_jet_booking'       => 'jet-booking.php',
-            'enable_integration_jet_smart_filters' => 'jet-smart-filters.php',
-            'enable_integration_edd'               => 'edd.php',
-        ];
+        // Load integrations only if Jalali calendar is globally enabled
+        if ($this->is_setting_enabled('enable_jalali')) {
+            $integrations = [
+                'enable_integration_jet_engine'        => 'jet-engine.php',
+                'enable_integration_jet_form_builder'  => 'jet-form-builder.php',
+                'enable_integration_jet_booking'       => 'jet-booking.php',
+                'enable_integration_jet_smart_filters' => 'jet-smart-filters.php',
+                'enable_integration_edd'               => 'edd.php',
+                'enable_integration_woocommerce'       => 'woocommerce.php',
+            ];
 
-        require_once PERSCA_PLUGIN_DIR . 'integrate/persca-integration-helpers.php';
+            require_once PERSCA_PLUGIN_DIR . 'integrate/persca-integration-helpers.php';
 
-        foreach ($integrations as $setting => $file) {
-            if ($this->is_setting_enabled($setting)) {
-                $integration_file = PERSCA_PLUGIN_DIR . 'integrate/' . $file;
-                if (file_exists($integration_file)) {
-                    include_once $integration_file;
+            foreach ($integrations as $setting => $file) {
+                if ($this->is_setting_enabled($setting)) {
+                    $integration_file = PERSCA_PLUGIN_DIR . 'integrate/' . $file;
+                    if (file_exists($integration_file)) {
+                        include_once $integration_file;
+                    }
                 }
             }
         }
@@ -130,7 +133,168 @@ class PERSCA_Plugin
             // Admin timewrap and inline edit scripts (depends on Jalali)
             if (is_admin()) {
                 add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_timewrap_assets']);
+                add_filter('gettext', [$this, 'force_admin_post_time_24h'], 20, 3);
             }
+        }
+    }
+
+    /**
+     * Standard, unambiguous machine formats.
+     *
+     * Only formats that are machine readable by definition belong here. A
+     * shape such as Y-m-d is deliberately absent: it is just as common as a
+     * display format, so the request context decides, not the format string.
+     *
+     * @return string[]
+     */
+    private function machine_date_formats(): array
+    {
+        $formats = [
+            'c',
+            'r',
+            'U',
+            DATE_ATOM,
+            DATE_W3C,
+            DATE_RFC2822,
+            DATE_RFC3339,
+        ];
+
+        // Several of these constants share the same value.
+        $formats = array_values(array_unique($formats));
+
+        return (array) apply_filters('persca_machine_date_formats', $formats);
+    }
+
+    /**
+     * Whether the current AJAX request is a known machine/export endpoint.
+     *
+     * Front-end AJAX is display output and must stay Jalali, so only vetted
+     * action names are bypassed. Site owners can extend the list.
+     *
+     * @return bool
+     */
+    private function is_machine_ajax_action(): bool
+    {
+        if (! function_exists('wp_doing_ajax') || ! wp_doing_ajax()) {
+            return false;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $action = isset($_REQUEST['action']) ? sanitize_key(wp_unslash($_REQUEST['action'])) : '';
+
+        if ('' === $action) {
+            return false;
+        }
+
+        $actions = (array) apply_filters(
+            'persca_machine_ajax_actions',
+            [
+                'woocommerce_do_ajax_product_export',
+            ]
+        );
+
+        return in_array($action, $actions, true);
+    }
+
+    /**
+     * Machine request context, or an empty string for display contexts.
+     *
+     * @return string
+     */
+    private function machine_date_context(): string
+    {
+        if (defined('REST_REQUEST') && REST_REQUEST) {
+            return 'rest';
+        }
+
+        if (defined('WP_CLI') && WP_CLI) {
+            return 'cli';
+        }
+
+        if (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST) {
+            return 'xmlrpc';
+        }
+
+        // Precautionary: core feed templates ask mysql2date() not to translate,
+        // so this mainly covers third-party feeds.
+        if (isset($GLOBALS['wp_query']) && function_exists('is_feed') && is_feed()) {
+            return 'feed';
+        }
+
+        if ($this->is_machine_ajax_action()) {
+            return 'ajax_export';
+        }
+
+        return '';
+    }
+
+    /**
+     * Whether a date passing through date_i18n()/wp_date() may be converted.
+     *
+     * The request context decides first: a machine context is never converted,
+     * even when the format matches the site's display format.
+     *
+     * @param string $format    Requested date format.
+     * @param mixed  $timestamp Timestamp handed to the filter.
+     * @return bool
+     */
+    private function should_convert_date($format, $timestamp): bool
+    {
+        $context = $this->machine_date_context();
+
+        if (in_array((string) $format, $this->machine_date_formats(), true)) {
+            $should_convert = false;
+            $context        = 'standard_format';
+        } elseif ('' !== $context) {
+            $should_convert = false;
+        } else {
+            $should_convert = true;
+            $context        = 'display';
+        }
+
+        return (bool) apply_filters(
+            'persca_should_convert_date',
+            $should_convert,
+            $format,
+            $timestamp,
+            $context
+        );
+    }
+
+    /**
+     * Canonical output for a standard machine format.
+     *
+     * Expanded RFC formats containing D or M may be localized by wp_date(),
+     * so rebuild known machine formats with DateTime to preserve their
+     * canonical form. The timestamp given here must already be a real Unix
+     * timestamp, never a legacy "timestamp with offset" value.
+     *
+     * @param string            $formatted Formatted value from WordPress.
+     * @param string            $format    Requested date format.
+     * @param mixed             $timestamp Timestamp handed to the filter.
+     * @param \DateTimeZone|null $zone     Timezone the value belongs to.
+     * @return string
+     */
+    private function machine_date_output($formatted, $format, $timestamp, $zone = null)
+    {
+        if (! apply_filters('persca_normalize_machine_dates', true, $format, $timestamp)) {
+            return $formatted;
+        }
+
+        if (! is_numeric($timestamp) || ! in_array((string) $format, $this->machine_date_formats(), true)) {
+            return $formatted;
+        }
+
+        try {
+            $dt = new \DateTime('@' . (int) $timestamp);
+
+            if ($zone instanceof \DateTimeZone) {
+                $dt->setTimezone($zone);
+            }
+
+            return $dt->format((string) $format);
+        } catch (\Exception $e) {
+            return $formatted;
         }
     }
 
@@ -145,22 +309,63 @@ class PERSCA_Plugin
      */
     public function filter_date_i18n($formatted, $format, $timestamp, $gmt)
     {
-        if (!is_numeric($timestamp)) {
-            return $this->date->format_date((string) $format, null, $this->is_setting_enabled('enable_persian_digits'));
+        // Core answers date_i18n('U') with the legacy timestamp-with-offset
+        // value verbatim. Rebuilding it from a normalised timestamp would
+        // silently change that documented contract, so pass it straight back.
+        if ('U' === (string) $format) {
+            return $formatted;
+        }
+
+        $zone = $gmt
+            ? new \DateTimeZone('UTC')
+            : (function_exists('wp_timezone') ? wp_timezone() : null);
+
+        $normalized_timestamp = $this->normalize_date_i18n_timestamp($timestamp, (bool) $gmt);
+
+        if (! $this->should_convert_date($format, $timestamp)) {
+            return $this->machine_date_output($formatted, $format, $normalized_timestamp, $zone);
         }
 
         $convert_digits = $this->is_setting_enabled('enable_persian_digits');
 
-        // When $gmt is false, timestamp is already in local time (WP added offset)
-        // We need to treat it as local time, not UTC
-        if (!$gmt) {
-            // Convert local timestamp to date string, then let format_date interpret it as Tehran time
-            $date_string = gmdate('Y-m-d H:i:s', (int) $timestamp);
-            return $this->date->format_date((string) $format, $date_string, $convert_digits);
+        if (null === $normalized_timestamp) {
+            return $this->date->format_date((string) $format, null, $convert_digits, $zone);
         }
 
-        // GMT timestamp - pass directly (format_date will convert from UTC to Tehran)
-        return $this->date->format_date((string) $format, (int) $timestamp, $convert_digits);
+        return $this->date->format_date((string) $format, $normalized_timestamp, $convert_digits, $zone);
+    }
+
+    /**
+     * Turn the legacy date_i18n() value into a real Unix timestamp.
+     *
+     * The date_i18n filter receives "a sum of Unix timestamp and timezone
+     * offset in seconds", not a real timestamp, unless $gmt is true. This
+     * reverses that quirk exactly the way core does before formatting.
+     *
+     * @param mixed $timestamp Value handed to the date_i18n filter.
+     * @param bool  $gmt       Whether the value is already UTC based.
+     * @return int|null Real Unix timestamp, or null when unavailable.
+     */
+    private function normalize_date_i18n_timestamp($timestamp, $gmt)
+    {
+        if (! is_numeric($timestamp)) {
+            return null;
+        }
+
+        if ($gmt) {
+            return (int) $timestamp;
+        }
+
+        $local_time = gmdate('Y-m-d H:i:s', (int) $timestamp);
+        $timezone   = function_exists('wp_timezone')
+            ? wp_timezone()
+            : new \DateTimeZone('Asia/Tehran');
+
+        $datetime = date_create($local_time, $timezone);
+
+        return $datetime instanceof \DateTimeInterface
+            ? $datetime->getTimestamp()
+            : null;
     }
 
     /**
@@ -174,13 +379,27 @@ class PERSCA_Plugin
      */
     public function filter_wp_date($formatted, $format, $timestamp, $timezone)
     {
-        if (!is_numeric($timestamp)) {
-            return $this->date->format_date((string) $format, null, $this->is_setting_enabled('enable_persian_digits'));
+        // wp_date() is timezone aware; honouring its argument instead of
+        // forcing Tehran keeps wp_date($f, $ts, new DateTimeZone('UTC')) right.
+        // Without an explicit zone the historical Tehran default is kept.
+        $zone = $timezone instanceof \DateTimeZone ? $timezone : null;
+
+        if (! $this->should_convert_date($format, $timestamp)) {
+            $machine_zone = $zone instanceof \DateTimeZone
+                ? $zone
+                : (function_exists('wp_timezone') ? wp_timezone() : null);
+
+            return $this->machine_date_output($formatted, $format, $timestamp, $machine_zone);
         }
 
         $convert_digits = $this->is_setting_enabled('enable_persian_digits');
-        // wp_date always passes UTC timestamp - format_date will convert to Tehran
-        return $this->date->format_date((string) $format, (int) $timestamp, $convert_digits);
+
+        if (!is_numeric($timestamp)) {
+            return $this->date->format_date((string) $format, null, $convert_digits, $zone);
+        }
+
+        // wp_date always passes a UTC timestamp; format_date shifts it into $zone.
+        return $this->date->format_date((string) $format, (int) $timestamp, $convert_digits, $zone);
     }
 
 
@@ -265,6 +484,25 @@ class PERSCA_Plugin
         $format = $format ?: get_option('time_format');
         $convert_digits = $this->is_setting_enabled('enable_persian_digits');
         return $this->date->format_date($format, $post->post_modified, $convert_digits);
+    }
+
+    /**
+     * Force 24-hour time format for WordPress admin post tables string format.
+     *
+     * WordPress core hardcodes `__( 'g:i a' )` in WP_Posts_List_Table. Intercepting
+     * it ensures post list tables render time in 24-hour format (H:i).
+     *
+     * @param string $translated Translated text.
+     * @param string $text       Original text.
+     * @param string $domain     Text domain.
+     * @return string
+     */
+    public function force_admin_post_time_24h(string $translated, string $text, string $domain): string
+    {
+        if ('default' === $domain && ('g:i a' === $text || 'g:i A' === $text)) {
+            return 'H:i';
+        }
+        return $translated;
     }
 
     /**

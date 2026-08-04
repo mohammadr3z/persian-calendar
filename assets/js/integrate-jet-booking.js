@@ -23,53 +23,176 @@
     // ──────────────────────────────────────────
 
     function toPersianDigits(str) {
-        if (window.PersianCalendarIntegrations && window.PersianCalendarIntegrations.toPersianDigits) {
-            return window.PersianCalendarIntegrations.toPersianDigits(str);
-        }
-        return str;
+        return window.PersianDateConverter.toPersianDigits(str);
     }
 
     function toGregorian(jy, jm, jd) {
-        if (window.PersianDateConverter) {
-            return window.PersianDateConverter.jalaliToGregorian(jy, jm, jd);
-        }
-        return [0, 0, 0];
+        return window.PersianDateConverter.jalaliToGregorian(jy, jm, jd);
     }
 
     function toJalali(gy, gm, gd) {
-        if (window.PersianDateConverter) {
-            return window.PersianDateConverter.gregorianToJalali(gy, gm, gd);
-        }
-        return [0, 0, 0];
+        return window.PersianDateConverter.gregorianToJalali(gy, gm, gd);
     }
 
     function pad(n) {
-        if (window.PersianDateConverter && window.PersianDateConverter.padZero) {
-            return window.PersianDateConverter.padZero(n);
-        }
-        return String(n).padStart(2, '0');
+        return window.PersianDateConverter.padZero(n);
     }
 
     function getDaysInJalaliMonth(jy, jm) {
-        if (window.PersianDateConverter && window.PersianDateConverter.getDaysInJalaliMonth) {
-            return window.PersianDateConverter.getDaysInJalaliMonth(jy, jm);
-        }
-        return 30; // Fallback
+        return window.PersianDateConverter.getDaysInJalaliMonth(jy, jm);
     }
 
     function parseDate(str) {
-        if (window.PersianCalendarIntegrations && window.PersianCalendarIntegrations.parseLocalDate) {
-            return window.PersianCalendarIntegrations.parseLocalDate(str);
+        return window.PersianCalendarIntegrations.parseLocalDate(str);
+    }
+
+    // ── Localized (month-name) date parsing ──
+    // JetBooking may hand over already-localized dates such as
+    // "جولای 31, 2026" (WordPress date_i18n output) instead of
+    // "2026-07-31" or a unix timestamp. parseLocalDate() cannot read those,
+    // so we parse Gregorian/Jalali month names here as a fallback.
+    const PERSCA_MONTH_ALIASES = (function () {
+        const map = {};
+        const gregorian = [
+            ['january', 'jan', 'ژانویه', 'ژانویهٔ', 'ژانویە'],
+            ['february', 'feb', 'فوریه', 'فبرویه'],
+            ['march', 'mar', 'مارس', 'مارچ'],
+            ['april', 'apr', 'آوریل', 'اوریل', 'اپریل'],
+            ['may', 'مه', 'می', 'مای'],
+            ['june', 'jun', 'ژوئن', 'ژون', 'جون'],
+            ['july', 'jul', 'ژوئیه', 'جولای', 'جولایی'],
+            ['august', 'aug', 'اوت', 'آگوست', 'اگوست'],
+            ['september', 'sep', 'sept', 'سپتامبر', 'سپتامبر'],
+            ['october', 'oct', 'اکتبر', 'اکتوبر'],
+            ['november', 'nov', 'نوامبر'],
+            ['december', 'dec', 'دسامبر', 'دسمبر']
+        ];
+        gregorian.forEach(function (names, idx) {
+            names.forEach(function (n) { map[n] = { month: idx + 1, jalali: false }; });
+        });
+        const jalali = window.PersianDateConverter.PERSIAN_MONTHS || [];
+        jalali.forEach(function (n, idx) {
+            map[String(n)] = { month: idx + 1, jalali: true };
+        });
+        return map;
+    })();
+
+    function perscaToAsciiDigits(str) {
+        return String(str)
+            .replace(/[۰-۹]/g, function (c) { return String(c.charCodeAt(0) - 0x06f0); })
+            .replace(/[٠-٩]/g, function (c) { return String(c.charCodeAt(0) - 0x0660); });
+    }
+
+    /**
+     * Parse a localized date string such as "جولای 31, 2026", "31 July 2026"
+     * or "۱۴۰۵/مرداد/۹" into a Date object.
+     * @returns {Date|null}
+     */
+    function parseLocalizedDateString(raw) {
+        if (!raw) return null;
+        const norm = perscaToAsciiDigits(raw)
+            .replace(/[,،]/g, ' ')
+            .replace(/[\/\-]/g, ' ')
+            .trim()
+            .toLowerCase();
+        const tokens = norm.split(/\s+/).filter(Boolean);
+
+        let year = null, day = null, monthInfo = null;
+        tokens.forEach(function (token) {
+            const t = token.replace(/[^0-9a-z؀-ۿ]/g, '');
+            if (!t) return;
+            if (/^\d{3,4}$/.test(t)) {
+                if (year === null) year = parseInt(t, 10);
+            } else if (/^\d{1,2}$/.test(t)) {
+                if (day === null) day = parseInt(t, 10);
+            } else if (monthInfo === null && PERSCA_MONTH_ALIASES[t]) {
+                monthInfo = PERSCA_MONTH_ALIASES[t];
+            }
+        });
+
+        if (!year || !day || !monthInfo) return null;
+        if (day < 1 || day > 31) return null;
+
+        if (monthInfo.jalali || (year >= 1300 && year <= 1500)) {
+            const g = toGregorian(year, monthInfo.month, day);
+            if (!g || g[0] <= 0) return null;
+            const jd = new Date(g[0], g[1] - 1, g[2]);
+            return isNaN(jd.getTime()) ? null : jd;
         }
-        if (!str) return null;
-        if (str instanceof Date) return str;
-        // Fallback moment check
-        if (typeof moment !== 'undefined') {
-            let m = moment(str);
-            if (m.isValid()) return m.toDate();
-        }
-        let d = new Date(str);
+
+        const d = new Date(year, monthInfo.month - 1, day);
         return isNaN(d.getTime()) ? null : d;
+    }
+
+    function perscaJalaliMonthName(m) {
+        const months = window.PersianDateConverter.PERSIAN_MONTHS || [];
+        return months[m - 1] || '';
+    }
+
+    /**
+     * Human readable Jalali range, e.g. "۹ مرداد - ۱۲ مرداد ۱۴۰۵".
+     */
+    function perscaFormatJalaliRangeHuman(j1, j2) {
+        const sameYear = j1[0] === j2[0];
+        const first = j1[2] + ' ' + perscaJalaliMonthName(j1[1]) + (sameYear ? '' : ' ' + j1[0]);
+        const second = j2[2] + ' ' + perscaJalaliMonthName(j2[1]) + ' ' + j2[0];
+        return toPersianDigits(first + ' - ' + second);
+    }
+
+    /**
+     * True when a string already carries a Jalali date (converted server side).
+     * Those values are shown untouched so the human wording is preserved.
+     */
+    function perscaIsJalaliText(val) {
+        if (!val || typeof val !== 'string') return false;
+        const txt = perscaToAsciiDigits(val);
+        const months = window.PersianDateConverter.PERSIAN_MONTHS || [];
+        for (let i = 0; i < months.length; i++) {
+            if (months[i] && txt.indexOf(months[i]) !== -1) return true;
+        }
+        const match = txt.match(/\d{4}/);
+        if (match) {
+            const y = parseInt(match[0], 10);
+            if (y >= 1300 && y <= 1500) return true;
+        }
+        return false;
+    }
+
+    /**
+     * parseDate() with a localized month-name fallback.
+     * @returns {Date|null}
+     */
+    function parseAnyDate(val) {
+        if (val === null || val === undefined || val === '') return null;
+        if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+        const d = parseDate(val);
+        if (d) return d;
+        return parseLocalizedDateString(String(val));
+    }
+
+    /**
+     * Replace every localized Gregorian date inside a text node with its Jalali form.
+     */
+    function perscaReplaceLocalizedDatesInText(text) {
+        if (!text) return text;
+        const names = Object.keys(PERSCA_MONTH_ALIASES)
+            .filter(function (n) { return n.length > 2 && !PERSCA_MONTH_ALIASES[n].jalali; })
+            .sort(function (a, b) { return b.length - a.length; })
+            .map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); })
+            .join('|');
+        if (!names) return text;
+        const re = new RegExp(
+            '(?:(?:' + names + ')\\s*[۰-۹0-9]{1,2}\\s*[,،]?\\s*[۰-۹0-9]{4})' +
+            '|(?:[۰-۹0-9]{1,2}\\s+(?:' + names + ')\\s+[۰-۹0-9]{4})',
+            'gi'
+        );
+        return text.replace(re, function (match) {
+            const d = parseLocalizedDateString(match);
+            if (!d) return match;
+            const j = toJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+            if (!j || j[0] <= 0) return match;
+            return toPersianDigits(j[2] + ' ' + perscaJalaliMonthName(j[1]) + ' ' + j[0]);
+        });
     }
 
     /**
@@ -85,9 +208,7 @@
 
         const jy = j[0], jm = j[1], jd = j[2];
         if (format === 'DD MMM') {
-            const monthName = (window.PersianDateConverter && window.PersianDateConverter.PERSIAN_MONTHS)
-                ? window.PersianDateConverter.PERSIAN_MONTHS[jm - 1]
-                : new Intl.DateTimeFormat('fa-IR', { month: 'long' }).format(date);
+            const monthName = window.PersianDateConverter.PERSIAN_MONTHS[jm - 1];
             return pad(jd) + ' ' + monthName;
         }
         return jy + '/' + pad(jm) + '/' + pad(jd);
@@ -154,7 +275,7 @@
             '>' +
             '<div class="jet-abaf-booking-data" :class="statusClass(attr.customData.status)">' +
             '<strong>{{ getItemLabel(attr.customData.apartment_id) }}<span v-if="attr.customData.apartment_unit">, {{ getItemUnitLabel(attr.customData.apartment_id, attr.customData.apartment_unit) }}</span></strong>' +
-            '<span>{{ formatJalaliRange(attr.customData.check_in_date, attr.customData.check_out_date) }}</span>' +
+            '<span>{{ formatJalaliRange(attr.customData.check_in_date || attr.customData.check_in_date_timestamp, attr.customData.check_out_date || attr.customData.check_out_date_timestamp) }}</span>' +
             '</div>' +
             '</div>' +
             '</div>' +
@@ -274,17 +395,20 @@
         };
         definition.methods.formatJalaliRange = function (inStr, outStr) {
             if (!inStr || !outStr) return '';
-            const d1 = parseDate(inStr);
-            const d2 = parseDate(outStr);
+            // Already Jalali (converted server side) -> keep it untouched.
+            if (perscaIsJalaliText(inStr) && perscaIsJalaliText(outStr)) {
+                return toPersianDigits(String(inStr) + ' - ' + String(outStr));
+            }
+            const d1 = parseAnyDate(inStr);
+            const d2 = parseAnyDate(outStr);
             if (!d1 || !d2) return inStr + ' - ' + outStr;
             const j1 = toJalali(d1.getFullYear(), d1.getMonth() + 1, d1.getDate());
             const j2 = toJalali(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
-            return toPersianDigits(j1[0] + '/' + pad(j1[1]) + '/' + pad(j1[2]) + ' - ' + j2[0] + '/' + pad(j2[1]) + '/' + pad(j2[2]));
+            return perscaFormatJalaliRangeHuman(j1, j2);
         };
 
-        definition.computed = definition.computed || {};
         definition.computed.weekdays = function () {
-            return ['شنبه', 'یکشنبه', 'دوشنبه', 'سه شنبه', 'چهارشنبه', 'پنج شنبه', 'جمعه'];
+            return window.PersianDateConverter.PERSIAN_WEEKDAYS_LONG;
         };
         definition.computed.currentMonthName = function () {
             return window.PersianDateConverter.PERSIAN_MONTHS[this.currentMonth - 1] + ' ' + toPersianDigits(this.currentYear);
@@ -457,15 +581,19 @@
         };
         definition.methods.formatJalaliRange = function (inStr, outStr) {
             if (!inStr || !outStr) return '';
-            const d1 = parseDate(inStr);
-            const d2 = parseDate(outStr);
+            // Already Jalali (converted server side) -> keep it untouched.
+            if (perscaIsJalaliText(inStr) && perscaIsJalaliText(outStr)) {
+                return toPersianDigits(String(inStr) + ' - ' + String(outStr));
+            }
+            const d1 = parseAnyDate(inStr);
+            const d2 = parseAnyDate(outStr);
             if (!d1 || !d2) return inStr + ' - ' + outStr;
             const j1 = toJalali(d1.getFullYear(), d1.getMonth() + 1, d1.getDate());
             const j2 = toJalali(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
             if (!j1 || j1[0] === 0 || !j2 || j2[0] === 0) {
                 return inStr + ' - ' + outStr;
             }
-            return toPersianDigits(j1[0] + '/' + pad(j1[1]) + '/' + pad(j1[2]) + ' - ' + j2[0] + '/' + pad(j2[1]) + '/' + pad(j2[2]));
+            return perscaFormatJalaliRangeHuman(j1, j2);
         };
         definition.methods.getBlockStyle = function (item) {
             const dataItem = item.gtArray && item.gtArray[0] ? item.gtArray[0].customData : {};
@@ -658,7 +786,7 @@
             }
 
             // Create wrapper
-            const $wrapper = $('<div class="date-picker-wrapper no-shortcuts no-gap jet-abaf-jalali-range" style="display:none; position:absolute; z-index:9999;"></div>');
+            const $wrapper = $('<div class="date-picker-wrapper no-shortcuts no-gap jet-abaf-jalali-range" style="display:none; position:absolute; z-index:999999; pointer-events:auto;"></div>');
 
             if (isSingleDay) {
                 $wrapper.addClass('single-month');
@@ -675,7 +803,7 @@
             $wrapper.on('click mousedown mouseup pointerdown pointerup touchstart touchend', function(e) {
                 e.stopPropagation();
             });
-            const $parentPopup = $el.closest('.elementor-popup-modal, .jet-popup, .dialog-widget, .jet-popup-container');
+            const $parentPopup = $el.closest('.jet-popup__container-inner, .dialog-widget-content, .elementor-popup-modal, .jet-popup-container, .jet-popup, .dialog-widget');
             if ($parentPopup.length) {
                 $parentPopup.append($wrapper);
             } else {
@@ -974,6 +1102,25 @@
                 endPicker.currentMonth = nextMonth;
                 endPicker.currentYear = nextYear;
                 endPicker.updateCalendarView();
+            }
+
+            // ── Range state fix ──
+            // PersianCalendar keeps its own internal rangeStart/rangeEnd state and does NOT
+            // fire onDateSelect on the first click of a new range. When a range already
+            // exists (editing a saved booking), that made the internal state and the
+            // integration state (startDateVal/endDateVal) drift apart, so the next clicks
+            // were interpreted as the wrong step and the selection was lost.
+            // Make this integration the single source of truth for range selection.
+            if (!isSingleDay) {
+                const bindRangeSelection = function (picker) {
+                    if (!picker) return;
+                    picker.selectDate = function (year, month, day) {
+                        const g = toGregorian(year, month, day);
+                        handleDateSelection(new Date(g[0], g[1] - 1, g[2]));
+                    };
+                };
+                bindRangeSelection(startPicker);
+                bindRangeSelection(endPicker);
             }
 
             // Periodically sync the real inputs value (Gregorian) to fake inputs (Shamsi)
@@ -1441,7 +1588,7 @@
                 let patched = false;
                 el.childNodes.forEach(function (node) {
                     if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
-                        const newText = node.nodeValue.replace(/(?:(\d{4})-(\d{2})-(\d{2}))|(?:(\d{2})-(\d{2})-(\d{4}))/g, function (match, y1, m1, d1, d2, m2, y2) {
+                        let newText = node.nodeValue.replace(/(?:(\d{4})-(\d{2})-(\d{2}))|(?:(\d{2})-(\d{2})-(\d{4}))/g, function (match, y1, m1, d1, d2, m2, y2) {
                             let y, m, d;
                             if (y1) {
                                 y = parseInt(y1, 10);
@@ -1464,6 +1611,8 @@
                             }
                             return match;
                         });
+                        // Fallback for already-localized dates like "جولای 31, 2026"
+                        newText = perscaReplaceLocalizedDatesInText(newText);
                         if (newText !== node.nodeValue) {
                             node.nodeValue = newText;
                             patched = true;

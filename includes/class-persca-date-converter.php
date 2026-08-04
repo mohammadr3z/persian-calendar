@@ -135,9 +135,11 @@ class PERSCA_Date_Converter
      *                     Default null.
      * @return \DateTime DateTime object in Tehran timezone.
      */
-    public function get_tehran_datetime($input = null): \DateTime
+    public function get_tehran_datetime($input = null, ?\DateTimeZone $timezone = null): \DateTime
     {
-        $tz = self::get_tehran_tz();
+        // No explicit zone keeps the historical Tehran behaviour, so existing
+        // callers are unaffected. wp_date() passes the caller's zone through.
+        $tz = $timezone instanceof \DateTimeZone ? $timezone : self::get_tehran_tz();
 
         if ($input === null) {
             // Current time in Tehran
@@ -189,9 +191,9 @@ class PERSCA_Date_Converter
      *                               Default false.
      * @return string Formatted Jalali date string.
      */
-    public function format_date(string $format, $input = null, bool $persian_digits = false): string
+    public function format_date(string $format, $input = null, bool $persian_digits = false, ?\DateTimeZone $timezone = null): string
     {
-        $dt = $this->get_tehran_datetime($input);
+        $dt = $this->get_tehran_datetime($input, $timezone);
 
         // Get Gregorian components from DateTime (already in Tehran time)
         $gy = (int) $dt->format('Y');
@@ -223,6 +225,9 @@ class PERSCA_Date_Converter
                 case 'y':
                     $out .= substr(sprintf('%04d', $jy), -2);
                     break;
+                case 'L':
+                    $out .= 30 === $this->days_in_jalali_month($jy, 12) ? '1' : '0';
+                    break;
                 // Month
                 case 'm':
                     $out .= sprintf('%02d', $jm);
@@ -236,12 +241,22 @@ class PERSCA_Date_Converter
                 case 'M':
                     $out .= $this->months_fa[$jm];
                     break;
+                case 't':
+                    $out .= (string) $this->days_in_jalali_month($jy, $jm);
+                    break;
                 // Day
                 case 'd':
                     $out .= sprintf('%02d', $jd);
                     break;
                 case 'j':
                     $out .= (string) $jd;
+                    break;
+                case 'z':
+                    $day_of_year = $jd - 1;
+                    for ($m = 1; $m < $jm; $m++) {
+                        $day_of_year += $this->days_in_jalali_month($jy, $m);
+                    }
+                    $out .= (string) $day_of_year;
                     break;
                 // Weekday
                 case 'l':
@@ -268,14 +283,18 @@ class PERSCA_Date_Converter
                     $out .= $dt->format($ch);
                     break;
                 case 'h':
-                    $out .= $dt->format('H');
+                    $out .= $dt->format('h');
                     break;
                 case 'g':
-                    $out .= $dt->format('G');
+                    $out .= $dt->format('g');
                     break;
+                // Persian has no upper/lower case distinction for the meridiem.
                 case 'a':
+                    $out .= 'am' === $dt->format('a') ? 'ق.ظ' : 'ب.ظ';
+                    break;
                 case 'A':
-                    break; // no am/pm
+                    $out .= 'AM' === $dt->format('A') ? 'ق.ظ' : 'ب.ظ';
+                    break;
                 // Others
                 default:
                     $out .= $dt->format($ch);
@@ -376,6 +395,23 @@ class PERSCA_Date_Converter
     }
 
     /**
+     * Convert Persian and Arabic-Indic digits to ASCII digits.
+     *
+     * Replaces all Persian (۰-۹) and Arabic-Indic (٠-٩) numerals
+     * in the input string with their ASCII equivalents.
+     *
+     * @param string $input String containing Persian/Arabic digits.
+     * @return string String with ASCII digits replacing Persian/Arabic digits.
+     */
+    public function to_ascii_digits(string $input): string
+    {
+        $fa = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        $ar = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        $en = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        return str_replace(array_merge($fa, $ar), array_merge($en, $en), $input);
+    }
+
+    /**
      * Get the number of days in a given Jalali month.
      *
      * Single source of truth for Jalali month lengths and Esfand leap logic.
@@ -412,5 +448,48 @@ class PERSCA_Date_Converter
         }
 
         return $jd <= $this->days_in_jalali_month($jy, $jm);
+    }
+
+    /**
+     * Convert a single Jalali date string to its Gregorian equivalent.
+     *
+     * Accepts formats like YYYY/MM/DD, YYYY-MM-DD, YYYY.MM.DD (with optional
+     * trailing content such as time). Returns the original value unchanged when
+     * it is not a recognisable Jalali date (already Gregorian, empty, etc.).
+     *
+     * @param string $value Raw date string.
+     * @return string Gregorian date string, or the original value if not Jalali.
+     */
+    public function convert_jalali_string(string $value): string
+    {
+        $normalized = trim($this->to_ascii_digits($value));
+        if ('' === $normalized || strlen($normalized) > 40) {
+            return $value;
+        }
+
+        if (!preg_match('/^(\d{4})([\/\.\-])(\d{1,2})\2(\d{1,2})(.*)$/', $normalized, $m)) {
+            return $value;
+        }
+
+        $jy   = (int) $m[1];
+        $jm   = (int) $m[3];
+        $jd   = (int) $m[4];
+        $rest = $m[5];
+
+        if ($jy < 1300 || $jy > 1599) {
+            return $value;
+        }
+
+        if (!$this->is_valid_jalali($jy, $jm, $jd)) {
+            return $value;
+        }
+
+        $g = $this->jalali_to_gregorian($jy, $jm, $jd);
+
+        if (empty($g) || empty($g['y'])) {
+            return $value;
+        }
+
+        return sprintf('%04d-%02d-%02d', $g['y'], $g['m'], $g['d']) . $rest;
     }
 }

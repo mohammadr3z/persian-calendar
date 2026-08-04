@@ -550,8 +550,15 @@ select.persian-calendar-month:focus {
 /* Animation for opening the calendar popup */
 .persian-calendar-popup,
 .persca-jalali-datepicker-popup {
+    z-index: 999999 !important;
+    pointer-events: auto !important;
     -webkit-animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
     animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.persian-calendar-popup *,
+.persca-jalali-datepicker-popup * {
+    pointer-events: auto !important;
 }
 
 @-webkit-keyframes fpFadeInDown {

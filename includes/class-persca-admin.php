@@ -181,6 +181,9 @@ final class PERSCA_Admin
             if ($key === 'enable_integration_edd' && ! (class_exists('Easy_Digital_Downloads') || function_exists('EDD') || defined('EDD_VERSION'))) {
                 $out[$key] = false;
             }
+            if ($key === 'enable_integration_woocommerce' && ! (class_exists('WooCommerce') || defined('WC_VERSION'))) {
+                $out[$key] = false;
+            }
         }
 
         // Disable Gutenberg calendar if Classic Editor is enabled
@@ -216,6 +219,7 @@ final class PERSCA_Admin
             'enable_integration_jet_booking' => false,
             'enable_integration_jet_smart_filters' => false,
             'enable_integration_edd' => false,
+            'enable_integration_woocommerce' => false,
         ];
     }
 
@@ -236,7 +240,12 @@ final class PERSCA_Admin
         $opts = get_option(self::OPTIONS_KEY, self::get_default_settings());
         $opts = wp_parse_args($opts, self::get_default_settings());
         $key  = $args['option'];
-        $icon = isset($args['icon']) ? '<span class="dashicons ' . esc_attr($args['icon']) . '"></span>' : '<span class="dashicons dashicons-admin-generic"></span>';
+        $image = isset($args['image']) ? $args['image'] : '';
+        if ($image !== '') {
+            $icon = '<img src="' . esc_url(PERSCA_PLUGIN_URL . 'assets/images/' . $image) . '" alt="' . esc_attr(isset($args['label']) ? $args['label'] : '') . '" class="persian-calendar-settings-image" />';
+        } else {
+            $icon = isset($args['icon']) ? '<span class="dashicons ' . esc_attr($args['icon']) . '"></span>' : '<span class="dashicons dashicons-admin-generic"></span>';
+        }
         $label = isset($args['label']) ? $args['label'] : '';
 
         // Check if this field should be disabled by another field or a custom condition
@@ -262,10 +271,19 @@ final class PERSCA_Admin
         echo '<div class="' . esc_attr($row_class) . '">';
 
         if ($is_disabled) {
-            $icon = '<span class="dashicons dashicons-lock"></span>';
+            $icon = ($image === '') ? '<span class="dashicons dashicons-lock"></span>' : $icon;
         }
 
-        echo '<div class="persian-calendar-settings-icon' . ($is_disabled ? ' persian-calendar-settings-icon-disabled' : '') . '">' . wp_kses_post($icon) . '</div>';
+        $icon_wrap_class = 'persian-calendar-settings-icon';
+        if ($image !== '') {
+            $icon_wrap_class .= ' persian-calendar-settings-icon-image';
+            if ($is_disabled) {
+                $icon_wrap_class .= ' persian-calendar-settings-icon-image-disabled';
+            }
+        } elseif ($is_disabled) {
+            $icon_wrap_class .= ' persian-calendar-settings-icon-disabled';
+        }
+        echo '<div class="' . esc_attr($icon_wrap_class) . '">' . wp_kses_post($icon) . '</div>';
         echo '<div class="persian-calendar-settings-content">';
         echo '<div class="persian-calendar-settings-title">' . esc_html($label) . '</div>';
         if ($is_disabled) {
@@ -306,6 +324,10 @@ final class PERSCA_Admin
                 'desc'      => $field_data['desc'],
                 'icon'      => $field_data['icon'],
             ];
+
+            if (isset($field_data['image'])) {
+                $field_args['image'] = $field_data['image'];
+            }
 
             if (isset($field_data['disabled_by'])) {
                 $field_args['disabled_by'] = $field_data['disabled_by'];
@@ -374,12 +396,14 @@ final class PERSCA_Admin
         $jet_booking_active = class_exists('JET_ABAF\\Plugin') || defined('JET_ABAF_VERSION');
         $jet_smart_filters_active = class_exists('Jet_Smart_Filters');
         $edd_active = class_exists('Easy_Digital_Downloads') || function_exists('EDD') || defined('EDD_VERSION');
+        $woocommerce_active = class_exists('WooCommerce') || defined('WC_VERSION');
 
         $fields = [
             'enable_integration_jet_engine' => [
                 'label' => __('JetEngine Integration', 'persian-calendar'),
                 'desc' => __('Enable Persian/Jalali calendar and date picker support in JetEngine fields.', 'persian-calendar'),
                 'icon' => 'dashicons-admin-plugins',
+                'image' => 'jet-engine.png',
                 'disabled_by' => !$jet_engine_active ? [
                     'active'  => true,
                     'message' => __('To use this integration, JetEngine plugin must be installed and active.', 'persian-calendar'),
@@ -389,6 +413,7 @@ final class PERSCA_Admin
                 'label' => __('JetFormBuilder Integration', 'persian-calendar'),
                 'desc' => __('Enable Persian/Jalali calendar and date picker support in JetFormBuilder forms.', 'persian-calendar'),
                 'icon' => 'dashicons-feedback',
+                'image' => 'jet-form-builder.png',
                 'disabled_by' => !$jet_form_builder_active ? [
                     'active'  => true,
                     'message' => __('To use this integration, JetFormBuilder plugin must be installed and active.', 'persian-calendar'),
@@ -398,6 +423,7 @@ final class PERSCA_Admin
                 'label' => __('JetBooking Integration', 'persian-calendar'),
                 'desc' => __('Enable Persian/Jalali calendar and date picker support in JetBooking check-in/out fields and admin panels.', 'persian-calendar'),
                 'icon' => 'dashicons-building',
+                'image' => 'jet-booking.png',
                 'disabled_by' => !$jet_booking_active ? [
                     'active'  => true,
                     'message' => __('To use this integration, JetBooking plugin must be installed and active.', 'persian-calendar'),
@@ -407,6 +433,7 @@ final class PERSCA_Admin
                 'label' => __('JetSmartFilters Integration', 'persian-calendar'),
                 'desc' => __('Enable Persian/Jalali calendar and date picker support in JetSmartFilters widgets and blocks.', 'persian-calendar'),
                 'icon' => 'dashicons-filter',
+                'image' => 'jet-smart-filters.png',
                 'disabled_by' => !$jet_smart_filters_active ? [
                     'active'  => true,
                     'message' => __('To use this integration, JetSmartFilters plugin must be installed and active.', 'persian-calendar'),
@@ -414,11 +441,22 @@ final class PERSCA_Admin
             ],
             'enable_integration_edd' => [
                 'label' => __('Easy Digital Downloads Integration', 'persian-calendar'),
-                'desc' => __('Enable Persian/Jalali calendar and date picker support in Easy Digital Downloads discounts, orders, customers, reports, list-table filters and CSV exporters.', 'persian-calendar'),
+                'desc' => __('Enable Persian/Jalali calendar and date picker support in Easy Digital Downloads discounts, orders, customers, and reports', 'persian-calendar'),
                 'icon' => 'dashicons-cart',
+                'image' => 'edd.png',
                 'disabled_by' => !$edd_active ? [
                     'active'  => true,
                     'message' => __('To use this integration, Easy Digital Downloads plugin must be installed and active.', 'persian-calendar'),
+                ] : null,
+            ],
+            'enable_integration_woocommerce' => [
+                'label' => __('WooCommerce Integration', 'persian-calendar'),
+                'desc' => __('Enable Persian/Jalali calendar and date picker support in WooCommerce orders, coupons, product sale schedules, downloads, and report charts.', 'persian-calendar'),
+                'icon' => 'dashicons-store',
+                'image' => 'woocommerce.png',
+                'disabled_by' => !$woocommerce_active ? [
+                    'active'  => true,
+                    'message' => __('To use this integration, WooCommerce plugin must be installed and active.', 'persian-calendar'),
                 ] : null,
             ],
         ];

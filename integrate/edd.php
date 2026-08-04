@@ -1,14 +1,7 @@
 <?php
+
 /**
- * Easy Digital Downloads (EDD) Integration for Persian Calendar
- *
- * Adds Jalali (Shamsi) calendar support to Easy Digital Downloads:
- *  - Replaces every jQuery UI "edd_datepicker" field with the plugin's Jalali date picker
- *    (Discount start/expiration dates, Order date, Customer "Date Created", Reports custom
- *     range, list-table date filters and every CSV exporter From/To range).
- *  - Normalizes any Jalali date submitted in the request back to Gregorian so EDD keeps
- *    storing and querying real Gregorian dates. Nothing in the database is changed.
- *  - Localizes the dates printed inside EDD admin screens to the Jalali calendar.
+ * Easy Digital Downloads (EDD) Integration for Persian Calendar.
  *
  * @package PersianCalendar
  * @since 1.3.5
@@ -29,9 +22,7 @@ function persca_edd_is_active(): bool
 }
 
 /**
- * Whether the current request belongs to an EDD admin context
- * (settings pages, list tables, order/discount/customer editors, or the
- * batch-export AJAX endpoint).
+ * Whether the current request belongs to an EDD admin context.
  *
  * @return bool
  */
@@ -41,16 +32,6 @@ function persca_edd_is_context(): bool
         return false;
     }
 
-    // On admin-ajax.php `is_admin()` returns true even for genuine FRONT-END
-    // requests such as EDD checkout / add-to-cart. Those purchase requests can
-    // carry EDD-named actions (e.g. edd_action=edd_process_checkout or
-    // action=edd_add_to_cart) that would otherwise satisfy the "edd_action" /
-    // "contains edd" checks below and make the request normalizer walk the whole
-    // payload. The only EDD context we legitimately serve over AJAX is the
-    // batch/CSV exporter, so during an AJAX request treat ONLY that endpoint as
-    // an admin context and bail on everything else. This guarantees a
-    // Jalali-looking value in a custom checkout field can never be silently
-    // rewritten to Gregorian during a purchase.
     if (wp_doing_ajax()) {
         $ajax_action = isset($_REQUEST['action'])
             ? sanitize_key(wp_unslash($_REQUEST['action']))
@@ -92,24 +73,17 @@ function persca_edd_is_context(): bool
 add_action('admin_enqueue_scripts', 'persca_edd_enqueue_assets', 20);
 
 /**
- * Enqueue the Persian calendar core, the shared date-picker styles and the
- * EDD integration overrides on EDD admin screens only.
+ * Enqueue assets on EDD admin screens.
  */
 function persca_edd_enqueue_assets(): void
 {
-    if (!persca_edd_is_active() || !persca_edd_is_context()) {
+    if (!persca_is_jalali_enabled() || !persca_edd_is_active() || !persca_edd_is_context()) {
         return;
     }
 
     // Shared Jalali core script + popup styles.
     persca_enqueue_core_assets();
 
-    // Prevent the Gregorian "flash" (FOUC) on the report date-range label:
-    // hide the label until our JS has localized it to Jalali, then reveal it by
-    // adding the .persca-dates-ready class to <body>. A CSS animation reveals
-    // the label after 2s as a fail-safe in case the JS never runs, so the
-    // content can never stay hidden permanently. Loaded in <head> so it applies
-    // before the body is painted.
     $fouc_css = '.edd-date-range-selected-date,.edd-date-range-selected-relative-date{visibility:hidden;animation:perscaEddReveal 0s linear 2s forwards;}'
         . '@keyframes perscaEddReveal{to{visibility:visible;}}'
         . '.persca-dates-ready .edd-date-range-selected-date,.persca-dates-ready .edd-date-range-selected-relative-date{visibility:visible;animation:none;}';
@@ -138,8 +112,7 @@ function persca_edd_enqueue_assets(): void
         'persianDigits' => $persian_digits ? '1' : '',
         'pickerFormat'  => $picker_format,
         'isEddPage'     => (function_exists('edd_is_admin_page') && edd_is_admin_page()) ? '1' : '',
-        // When a report preset was rewritten to a Jalali custom range, this tells
-        // the browser which preset to display in the dropdown (cosmetic only).
+        // Tells browser which preset to display when rewritten to Jalali.
         'forcedRange'   => $forced_range,
     ));
 }
@@ -148,11 +121,14 @@ function persca_edd_enqueue_assets(): void
 add_action('admin_enqueue_scripts', 'persca_edd_add_dependencies', 100);
 
 /**
- * Inject the integration script as a dependency of EDD's admin scripts so it
- * always loads first, regardless of enqueue order.
+ * Inject integration script as dependency of EDD's admin scripts.
  */
 function persca_edd_add_dependencies(): void
 {
+    if (!persca_is_jalali_enabled() || !persca_edd_is_active() || !persca_edd_is_context()) {
+        return;
+    }
+
     // EDD 3.x splits admin JS across several handles; cover the known ones.
     persca_inject_dependency(array(
         'edd-admin',
@@ -170,12 +146,6 @@ function persca_edd_add_dependencies(): void
 
 /* =============================================================================
  * REQUEST NORMALIZATION (Jalali -> Gregorian)
- *
- * The Jalali date picker submits a Gregorian value already, so EDD stores and
- * queries native Gregorian dates. This layer is a safety net: it converts any
- * value that clearly looks like a Jalali date (year 1300-1599) coming from the
- * reports range, list-table filters or the CSV exporters back to Gregorian ISO,
- * which every EDD date parser (Carbon / strtotime) understands.
  * ========================================================================== */
 
 add_action('init', 'persca_edd_normalize_request', 0);
@@ -186,83 +156,191 @@ add_action('admin_init', 'persca_edd_normalize_request', 0);
  */
 function persca_edd_normalize_request(): void
 {
-    if (!persca_edd_is_active() || !persca_edd_is_context()) {
+    if (
+        ! persca_is_jalali_enabled()
+        || ! persca_edd_is_active()
+        || ! persca_edd_is_context()
+    ) {
         return;
     }
 
+    $date_paths = persca_edd_date_request_paths();
+
     foreach (array('_GET', '_POST', '_REQUEST') as $global_key) {
-        if (!empty($GLOBALS[$global_key]) && is_array($GLOBALS[$global_key])) {
-            $GLOBALS[$global_key] = persca_edd_convert_request_array($GLOBALS[$global_key]);
+        if (
+            empty($GLOBALS[$global_key])
+            || ! is_array($GLOBALS[$global_key])
+        ) {
+            continue;
         }
+
+        $GLOBALS[$global_key] = persca_edd_convert_request_array(
+            $GLOBALS[$global_key],
+            $date_paths
+        );
     }
 }
 
 /**
- * Recursively convert Jalali date strings in an array to Gregorian.
+ * Convert only known EDD date fields.
  *
- * @param array $arr Request array.
+ * @param array         $data       Request data.
+ * @param string[]|null $date_paths Allowed paths in dot notation.
+ * @param string        $parent     Current parent path.
+ * @param int           $depth      Recursion depth.
  * @return array
  */
-function persca_edd_convert_request_array(array $arr): array
-{
-    foreach ($arr as $key => $value) {
-        if (is_array($value)) {
-            $arr[$key] = persca_edd_convert_request_array($value);
-        } elseif (is_string($value)) {
-            $arr[$key] = persca_edd_convert_jalali_string($value);
-        }
+function persca_edd_convert_request_array(
+    array $data,
+    ?array $date_paths = null,
+    string $parent = '',
+    int $depth = 0
+): array {
+    if (null === $date_paths) {
+        $date_paths = persca_edd_date_request_paths();
     }
 
-    return $arr;
+    if ($depth > 5) {
+        return $data;
+    }
+
+    foreach ($data as $key => $value) {
+        $key  = (string) $key;
+        $path = '' === $parent
+            ? $key
+            : $parent . '.' . $key;
+
+        if (is_array($value)) {
+            $data[$key] = persca_edd_convert_request_array(
+                $value,
+                $date_paths,
+                $path,
+                $depth + 1
+            );
+
+            continue;
+        }
+
+        if (
+            ! is_string($value)
+            || ! persca_edd_is_date_path($path, $date_paths)
+        ) {
+            continue;
+        }
+
+        $data[$key] = persca_edd_convert_jalali_string($value);
+    }
+
+    return $data;
 }
 
 /**
- * Convert a single Jalali date string to Gregorian ISO (YYYY-MM-DD), keeping any
- * trailing time portion. Non-Jalali / non-date strings are returned unchanged.
+ * Check if a request path matches known EDD date paths.
+ *
+ * @param string   $path       Path in dot notation.
+ * @param string[] $date_paths Allowed paths in dot notation.
+ * @return bool
+ */
+function persca_edd_is_date_path(string $path, array $date_paths): bool
+{
+    if (in_array($path, $date_paths, true)) {
+        return true;
+    }
+
+    foreach ($date_paths as $allowed) {
+        if ('' === $allowed) {
+            continue;
+        }
+
+        if (
+            $path === $allowed
+            || (strlen($path) > strlen($allowed) && substr($path, - (strlen($allowed) + 1)) === '.' . $allowed)
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Exact EDD request paths containing editable dates.
+ *
+ * Verified against Easy Digital Downloads 3.6.9.1.
+ *
+ * @return string[]
+ */
+function persca_edd_date_request_paths(): array
+{
+    $paths = array(
+        // Reports and export tools.
+        'filter_from',
+        'filter_to',
+        'from',
+        'to',
+        'range.from',
+        'range.to',
+        'export.range.from',
+        'export.range.to',
+        'export.range.start_date',
+        'export.range.end_date',
+        'export.start_date',
+        'export.end_date',
+        'export.start-date',
+        'export.end-date',
+
+        // Orders and logs list filters.
+        'start-date',
+        'end-date',
+
+        // Order create/edit screen.
+        'edd-payment-date',
+        'payment_date',
+
+        // Customer edit screen.
+        'customerinfo.date_created',
+        'date_created',
+
+        // Discount editor.
+        'start_date',
+        'end_date',
+        'discount.start_date',
+        'discount.end_date',
+        'discount.start',
+        'discount.end',
+    );
+
+    /**
+     * Filters EDD request paths containing Jalali dates.
+     *
+     * Nested fields use dot notation:
+     * customerinfo.date_created
+     *
+     * @param string[] $paths Date request paths.
+     */
+    $paths = (array) apply_filters(
+        'persca_edd_date_request_paths',
+        $paths
+    );
+
+    return array_values(
+        array_unique(
+            array_filter(
+                array_map('strval', $paths)
+            )
+        )
+    );
+}
+
+/**
+ * Convert a single Jalali date string to Gregorian ISO (YYYY-MM-DD).
  *
  * @param string $value Raw request value.
  * @return string
  */
 function persca_edd_convert_jalali_string(string $value): string
 {
-    $raw = trim($value);
-    if ('' === $raw) {
-        return $value;
-    }
-
-    // Dates (even with Persian/Arabic digits plus a time part) are short. Skip
-    // long values (post content, JSON blobs, serialized settings, etc.) so the
-    // digit normalization and regex below never run on large unrelated request
-    // fields. Keeps the request normalizer cheap on every EDD admin request.
-    if (strlen($raw) > 40) {
-        return $value;
-    }
-
-    $ascii = persca_edd_to_ascii_digits($raw);
-
-    // Leading YYYY[sep]M[sep]D with sep of / . or -, plus optional trailing time.
-    if (!preg_match('/^(\d{4})([\/\.\-])(\d{1,2})\2(\d{1,2})(.*)$/', $ascii, $m)) {
-        return $value;
-    }
-
-    $jy   = (int) $m[1];
-    $jm   = (int) $m[3];
-    $jd   = (int) $m[4];
-    $rest = $m[5];
-
-    // Only touch values that are unambiguously Jalali; leave Gregorian/ISO alone.
-    if ($jy < 1300 || $jy > 1599) {
-        return $value;
-    }
-
-    $converter = persca_get_converter();
-    if (!$converter->is_valid_jalali($jy, $jm, $jd)) {
-        return $value;
-    }
-
-    $g = $converter->jalali_to_gregorian($jy, $jm, $jd);
-
-    return sprintf('%04d-%02d-%02d', $g['y'], $g['m'], $g['d']) . $rest;
+    return persca_get_converter()->convert_jalali_string($value);
 }
 
 /**
@@ -273,32 +351,17 @@ function persca_edd_convert_jalali_string(string $value): string
  */
 function persca_edd_to_ascii_digits(string $str): string
 {
-    $fa = array('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹');
-    $ar = array('٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩');
-    $en = array('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
-
-    $str = str_replace($fa, $en, $str);
-    $str = str_replace($ar, $en, $str);
-
-    return $str;
+    return persca_get_converter()->to_ascii_digits($str);
 }
 
 /* =============================================================================
  * JALALI PRESET DATE RANGES
- *
- * EDD's report presets (Month/Quarter/Year to Date, last month, etc.) are
- * computed on the Gregorian calendar, so "Month to Date" starts on 1 July
- * (= 10 Tir) instead of 1 Tir. We recompute the calendar-based presets on the
- * Jalali calendar for the actual data query (report charts + endpoints that read
- * their range through EDD\Reports\get_dates_filter()). The matching labels are
- * recomputed on the client in assets/js/integrate-edd.js.
  * ========================================================================== */
 
 add_filter('edd_get_dates_filter', 'persca_edd_jalali_dates_filter', 20);
 
 /**
- * Replace the start/end of a calendar-based preset range with its Jalali
- * equivalent so the queried data matches the Jalali calendar month/quarter/year.
+ * Replace start/end of a calendar-based preset range with its Jalali equivalent.
  *
  * @param array $dates {
  *     @type string|\EDD\Utils\Date $start UTC start (string or Date object).
@@ -309,7 +372,7 @@ add_filter('edd_get_dates_filter', 'persca_edd_jalali_dates_filter', 20);
  */
 function persca_edd_jalali_dates_filter($dates)
 {
-    if (!is_array($dates) || empty($dates['range']) || !persca_edd_is_active()) {
+    if (!persca_is_jalali_enabled() || !is_array($dates) || empty($dates['range']) || !persca_edd_is_active()) {
         return $dates;
     }
 
@@ -344,18 +407,19 @@ function persca_edd_jalali_dates_filter($dates)
 function persca_edd_calendar_presets(): array
 {
     return array(
-        'this_month', 'last_month',
-        'this_quarter', 'last_quarter',
-        'this_year', 'last_year',
-        'this_week', 'last_week',
+        'this_month',
+        'last_month',
+        'this_quarter',
+        'last_quarter',
+        'this_year',
+        'last_year',
+        'this_week',
+        'last_week',
     );
 }
 
 /**
  * Compute Gregorian Y-m-d boundaries for a Jalali calendar preset range.
- *
- * Only calendar-based presets are handled. Day-based presets (today, yesterday,
- * last 30 days) and custom ranges return null (no recalculation needed).
  *
  * @param string $range Range key.
  * @return array|null ['start' => 'Y-m-d', 'end' => 'Y-m-d'] or null.
@@ -438,27 +502,7 @@ function persca_edd_jalali_range_bounds(string $range)
 }
 
 /**
- * Rewrite the report date-range request so calendar presets are computed on the
- * Jalali calendar.
- *
- * EDD's core parse_dates_for_range() computes "this month / quarter / year" on
- * the Gregorian calendar and is called directly by the chart data endpoints
- * (e.g. Graph.php), bypassing every available filter. The only reliable
- * interception point is the request itself: get_filter_value('dates') reads the
- * range and custom from/to straight from $_GET. So when a Jalali calendar preset
- * is requested, we convert it into a custom ("other") range whose boundaries are
- * the Jalali month/quarter/year/week edges. Every downstream consumer (chart
- * data, chart axis, list tables, relative comparison base) then uses the correct
- * Jalali boundaries, exactly as if the user had picked a custom range.
- *
- * Note: because the range becomes a fixed custom range, it no longer advances
- * automatically day-to-day; re-selecting the preset refreshes it to today.
- *
- * Hooked on `admin_init` (NOT `init`): this file is included while the `init`
- * hook is already running (persian-calendar.php bootstraps PERSCA on init:10),
- * so an `init` callback registered here would be added after init:1 has already
- * fired and would never run. `admin_init` fires after `init` completes and
- * before the Reports page renders its charts, which is exactly what we need.
+ * Rewrite report date-range request for Jalali calendar presets.
  */
 add_action('admin_init', 'persca_edd_rewrite_reports_range', 1);
 
@@ -481,8 +525,7 @@ function persca_edd_rewrite_reports_range()
         return;
     }
 
-    // Case 2: no range in the request (first load of the Reports page) -> apply
-    // the default "Month to Date" as a Jalali custom range.
+    // Case 2: apply default "Month to Date" as a Jalali custom range.
     $page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
     if ('edd-reports' === $page) {
         persca_edd_apply_range_override('this_month');
@@ -502,9 +545,7 @@ function persca_edd_apply_range_override(string $preset)
         return;
     }
 
-    // Remember the original preset so the browser can keep showing its name in
-    // the dropdown instead of "Custom" (purely cosmetic; the data uses the
-    // Jalali custom bounds below).
+    // Remember original preset for browser dropdown.
     $GLOBALS['persca_edd_forced_range'] = $preset;
 
     $_GET['range']           = 'other';
@@ -513,4 +554,260 @@ function persca_edd_apply_range_override(string $preset)
     $_REQUEST['range']       = 'other';
     $_REQUEST['filter_from'] = $bounds['start'];
     $_REQUEST['filter_to']   = $bounds['end'];
+}
+
+/* =============================================================================
+ * CURRENCY DECIMALS
+ * ========================================================================== */
+
+add_filter('edd_format_amount_decimals', '__return_zero', 999);
+add_filter('edd_sanitize_amount_decimals', '__return_zero', 999);
+
+add_action('admin_enqueue_scripts', 'persca_edd_set_admin_currency_decimals', 100);
+
+/**
+ * Set EDD admin script currency decimals to zero.
+ */
+function persca_edd_set_admin_currency_decimals(): void
+{
+    if (function_exists('wp_add_inline_script')) {
+        wp_add_inline_script(
+            'edd-admin-scripts',
+            'if ( typeof edd_vars !== "undefined" ) { edd_vars.currency_decimals = 0; }',
+            'after'
+        );
+    }
+}
+
+/* =============================================================================
+ * DASHBOARD "SALES SUMMARY" WIDGET (Jalali)
+ * ========================================================================== */
+
+/**
+ * Build the Sales Summary widget data using Jalali month boundaries.
+ *
+ * @return array
+ */
+function persca_edd_dashboard_widget_data(array $ranges = array('this_month', 'last_month', 'today', 'total')): array
+{
+    $data = array();
+
+    foreach ($ranges as $range) {
+        $args = array(
+            'output'       => 'formatted',
+            'revenue_type' => 'net',
+        );
+
+        if ('total' !== $range) {
+            $bounds = persca_edd_jalali_range_bounds($range);
+
+            if (null !== $bounds && function_exists('edd_get_utc_equivalent_date') && function_exists('EDD')) {
+                $start = EDD()->utils->date($bounds['start'] . ' 00:00:00', null, true)->startOfDay();
+                $end   = EDD()->utils->date($bounds['end'] . ' 23:59:59', null, true)->endOfDay();
+
+                $args['start'] = edd_get_utc_equivalent_date($start)->toDateTimeString();
+                $args['end']   = edd_get_utc_equivalent_date($end)->toDateTimeString();
+            } else {
+                // "today" is calendar agnostic; fall back to the native range.
+                $args['range'] = $range;
+            }
+        }
+
+        $stats = new EDD\Stats($args);
+
+        $data[$range] = array(
+            'earnings' => $stats->get_order_earnings(),
+            'count'    => $stats->get_order_count(),
+        );
+    }
+
+    return $data;
+}
+
+/*
+ * Take-over wiring with no ordering requirement.
+ */
+
+/*
+ * Our renderer sits at priority 1 on EDD's own AJAX action.
+ */
+add_action('wp_ajax_edd_load_dashboard_widget', 'persca_edd_render_dashboard_widget', 1);
+
+/*
+ * Our heartbeat handler runs after EDD's, overwriting the four month based keys.
+ */
+add_filter('heartbeat_received', 'persca_edd_heartbeat_received', 99, 2);
+
+/*
+ * Drop EDD's heartbeat callback to avoid computing unused Gregorian stats.
+ *
+ * @param mixed $response Heartbeat response (unused, returned as is).
+ * @param mixed $data     Heartbeat request data (unused).
+ * @return mixed
+ */
+function persca_edd_unhook_native_heartbeat($response = null, $data = null)
+{
+    global $wp_filter;
+
+    if (empty($wp_filter['heartbeat_received']) || !($wp_filter['heartbeat_received'] instanceof WP_Hook)) {
+        return $response;
+    }
+
+    foreach ($wp_filter['heartbeat_received']->callbacks as $priority => $callbacks) {
+        foreach ((array) $callbacks as $callback) {
+            $fn = isset($callback['function']) ? $callback['function'] : null;
+
+            if (!is_array($fn) || 2 !== count($fn)) {
+                continue;
+            }
+
+            if ('heartbeat_received' !== (string) $fn[1]) {
+                continue;
+            }
+
+            $class = is_object($fn[0]) ? get_class($fn[0]) : (string) $fn[0];
+
+            // Matches EDD_Heartbeat and namespaced variants such as EDD\Admin\Heartbeat.
+            if (0 !== stripos($class, 'EDD') || false === stripos($class, 'heartbeat')) {
+                continue;
+            }
+
+            remove_filter('heartbeat_received', $fn, $priority);
+        }
+    }
+
+    return $response;
+}
+add_action('admin_init', 'persca_edd_unhook_native_heartbeat', 999);
+add_filter('heartbeat_received', 'persca_edd_unhook_native_heartbeat', 1, 2);
+
+/**
+ * Jalali-aware heartbeat payload for the dashboard summary widget.
+ *
+ * @param array $response Heartbeat response.
+ * @param array $data     Heartbeat request data.
+ * @return array
+ */
+function persca_edd_heartbeat_received($response, $data)
+{
+    if (!current_user_can(apply_filters('edd_dashboard_stats_cap', 'view_shop_reports'))) {
+        return $response;
+    }
+
+    if (isset($data['edd_heartbeat']) && 'dashboard_summary' === $data['edd_heartbeat']) {
+        $stats = persca_edd_dashboard_widget_data();
+
+        $response['edd-total-payments'] = $stats['total']['count'];
+        $response['edd-total-earnings'] = html_entity_decode($stats['total']['earnings'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $response['edd-payments-month'] = $stats['this_month']['count'];
+        $response['edd-earnings-month'] = html_entity_decode($stats['this_month']['earnings'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $response['edd-payments-today'] = $stats['today']['count'];
+        $response['edd-earnings-today'] = html_entity_decode($stats['today']['earnings'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    return $response;
+}
+
+/**
+ * Render the Sales Summary widget.
+ *
+ * @return void
+ */
+function persca_edd_render_dashboard_widget(): void
+{
+    // Return early to let EDD's priority 10 handler render the widget.
+    if (!function_exists('edd_load_dashboard_sales_widget') || !persca_edd_is_active() || !class_exists('PERSCA_Date_Converter')) {
+        return;
+    }
+
+    if (!current_user_can(apply_filters('edd_dashboard_stats_cap', 'view_shop_reports'))) {
+        return; // EDD's handler performs the same check and dies.
+    }
+
+    ob_start('persca_edd_filter_dashboard_widget_html');
+
+    edd_load_dashboard_sales_widget(); // Ends with die(); the buffer is flushed through our callback.
+}
+
+/**
+ * Rewrite "Current Month" and "Last Month" using Jalali boundaries.
+ *
+ * @param string $html Buffered widget HTML.
+ * @return string
+ */
+function persca_edd_filter_dashboard_widget_html($html)
+{
+    if (
+        ! is_string($html)
+        || false === strpos($html, 'edd_dashboard_widget')
+    ) {
+        return $html;
+    }
+
+    if (
+        ! class_exists('DOMDocument')
+        || ! class_exists('DOMXPath')
+    ) {
+        return $html;
+    }
+
+    $data = persca_edd_dashboard_widget_data(array('this_month', 'last_month'));
+
+    // Exact class matching.
+    $class_match = static function ($class) {
+        return sprintf('contains(concat(" ", normalize-space(@class), " "), " %s ")', $class);
+    };
+
+    $current_month = '//div[' . $class_match('table_current_month') . ']';
+
+    $targets = array(
+        $current_month . '//td[' . $class_match('b-earnings') . ']' => (string) $data['this_month']['earnings'],
+        $current_month . '//td[' . $class_match('b-sales') . ']'    => (string) $data['this_month']['count'],
+        '//td[' . $class_match('b-last-month-earnings') . ']'       => (string) $data['last_month']['earnings'],
+        '//td[' . $class_match('b-last-month-sales') . ']'          => (string) $data['last_month']['count'],
+    );
+
+    $previous = libxml_use_internal_errors(true);
+
+    $doc = new DOMDocument('1.0', 'UTF-8');
+    $loaded = $doc->loadHTML(
+        '<?xml encoding="utf-8" ?><div id="persca-widget-root">' . $html . '</div>',
+        LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+    );
+
+    libxml_clear_errors();
+    libxml_use_internal_errors($previous);
+
+    if (!$loaded) {
+        return $html;
+    }
+
+    $xpath = new DOMXPath($doc);
+
+    // Patch every matching cell independently.
+    foreach ($targets as $query => $value) {
+        $nodes = $xpath->query('//*[@id="persca-widget-root"]' . $query);
+
+        if (!$nodes || 0 === $nodes->length) {
+            continue;
+        }
+
+        foreach ($nodes as $node) {
+            $node->nodeValue = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+    }
+
+    $root = $xpath->query('//*[@id="persca-widget-root"]');
+
+    if (!$root || 0 === $root->length) {
+        return $html;
+    }
+
+    $output = '';
+
+    foreach ($root->item(0)->childNodes as $child) {
+        $output .= $doc->saveHTML($child);
+    }
+
+    return '' !== trim($output) ? $output : $html;
 }

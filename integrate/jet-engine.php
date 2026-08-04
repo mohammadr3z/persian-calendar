@@ -7,6 +7,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/* =============================================================================
+ * ASSETS & DEPENDENCIES
+ * ========================================================================== */
+
 add_action('admin_enqueue_scripts', 'persca_jet_engine_enqueue_assets', 20);
 add_action('wp_enqueue_scripts', 'persca_jet_engine_enqueue_assets', 20);
 
@@ -15,8 +19,19 @@ add_action('wp_default_scripts', 'persca_jet_engine_add_dependencies', 100);
 add_action('admin_enqueue_scripts', 'persca_jet_engine_add_dependencies', 100);
 add_action('wp_enqueue_scripts', 'persca_jet_engine_add_dependencies', 100);
 
+// JetEngine renders listings, CCT tables and profile builder screens through its
+// own REST endpoints. Those responses are display output, so keep them Jalali.
+if (function_exists('persca_keep_jalali_on_rest_routes')) {
+    persca_keep_jalali_on_rest_routes(
+        array('jet-engine', 'jet_engine', 'jet-cct'),
+        static function () {
+            return class_exists('Jet_Engine');
+        }
+    );
+}
+
 function persca_jet_engine_enqueue_assets() {
-    if (!class_exists('Jet_Engine')) {
+    if (!persca_is_jalali_enabled() || !class_exists('Jet_Engine')) {
         return;
     }
 
@@ -34,6 +49,10 @@ function persca_jet_engine_enqueue_assets() {
 }
 
 function persca_jet_engine_add_dependencies() {
+    if (!persca_is_jalali_enabled() || !class_exists('Jet_Engine')) {
+        return;
+    }
+
     persca_inject_dependency(array(
         'jet-engine-meta-boxes',
         'jet-engine-advanced-date-field',
@@ -44,6 +63,10 @@ function persca_jet_engine_add_dependencies() {
         'jet-engine-cct-query-dialog',
     ), 'persca-integrate-jet-engine');
 }
+
+/* =============================================================================
+ * META KEY DISCOVERY & LISTING FILTERS
+ * ========================================================================== */
 
 function persca_get_jet_engine_date_meta_keys() {
     static $keys = null;
@@ -102,6 +125,10 @@ add_filter('jet-engine/listings/dynamic-field/field-value', 'persca_jet_engine_d
 
 // Hook into JetEngine custom-value filter to intercept post-fetch values for object properties and meta fields
 add_filter('jet-engine/listings/dynamic-field/custom-value', 'persca_jet_engine_dynamic_field_custom_value', 10, 3);
+
+/* =============================================================================
+ * DATE CONVERSION & FORMATTING HELPERS
+ * ========================================================================== */
 
 /**
  * Whether the current request should skip Jalali conversion of display values.

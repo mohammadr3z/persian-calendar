@@ -778,7 +778,7 @@
 
       // Boundary check vertical (flip popover up if no room below)
       const viewportHeight = window.innerHeight;
-      if (rect.bottom + popoverRect.height > viewportHeight + window.scrollY && rect.top - popoverRect.height > window.scrollY) {
+      if (rect.bottom + popoverRect.height > viewportHeight && rect.top - popoverRect.height > 0) {
         top = rect.top - popoverRect.height + window.scrollY;
       }
 
@@ -797,6 +797,7 @@
           this.options.rangeEnd = null;
           this.selectedDate = { year, month, day };
           this.updateCalendarView();
+          this.notifyDateChange(true);
           return;
         } else {
           // Second click: End the range
@@ -910,7 +911,7 @@
       const [gy, gm, gd] = jalaliToGregorian(this.selectedDate.year, this.selectedDate.month, this.selectedDate.day);
       const gregorianDate = new Date(gy, gm - 1, gd, this.selectedTime.hour, this.selectedTime.minute);
 
-      const formatted = formatDate(
+      let formatted = formatDate(
         this.selectedDate.year,
         this.selectedDate.month,
         this.selectedDate.day,
@@ -920,6 +921,18 @@
         this.options.dateFormat,
         this.options.persianDigits
       );
+
+      if (this.options.rangeMode && this.options.rangeStart) {
+        const [sjy, sjm, sjd] = gregorianToJalali(this.options.rangeStart.getFullYear(), this.options.rangeStart.getMonth() + 1, this.options.rangeStart.getDate());
+        const startStr = formatDate(sjy, sjm, sjd, 0, 0, false, this.options.dateFormat, this.options.persianDigits);
+        if (this.options.rangeEnd) {
+          const [ejy, ejm, ejd] = gregorianToJalali(this.options.rangeEnd.getFullYear(), this.options.rangeEnd.getMonth() + 1, this.options.rangeEnd.getDate());
+          const endStr = formatDate(ejy, ejm, ejd, 0, 0, false, this.options.dateFormat, this.options.persianDigits);
+          formatted = `${startStr} - ${endStr}`;
+        } else {
+          formatted = startStr;
+        }
+      }
 
       // Write output back to standard input elements if bound
       if (this.isInput) {
@@ -1062,9 +1075,12 @@
     isValidGregorian,
     isValidJalali,
     toPersianDigits,
+    toAsciiDigits,
     padZero,
     getDaysInJalaliMonth,
     PERSIAN_MONTHS,
+    PERSIAN_WEEKDAYS,
+    PERSIAN_WEEKDAYS_LONG,
     PERSIAN_WEEKDAYS_SHORT: PERSIAN_WEEKDAYS
   };
 
@@ -1160,6 +1176,319 @@
         });
     },
 
+    setupJalaliTimePicker: function($visibleInput, $altInput, $) {
+        if ($visibleInput.data('persian-timepicker-init')) {
+            return true;
+        }
+        $visibleInput.data('persian-timepicker-init', true);
+
+        const isClone = $visibleInput.hasClass('persian-time-input');
+        const originalVal = $visibleInput.val();
+
+        if (!isClone) {
+            const inputType = ($visibleInput.attr('type') || '').toLowerCase();
+            if (inputType === 'time') {
+                try {
+                    $visibleInput[0].type = 'text';
+                } catch (e) {
+                    $visibleInput.attr('type', 'text');
+                }
+            }
+        }
+
+        if (!$altInput) {
+            if (isClone) {
+                $altInput = $visibleInput.next('input[type="hidden"]');
+            } else {
+                const nameAttr = $visibleInput.attr('name');
+                if (nameAttr) {
+                    $altInput = $('<input type="hidden">').attr('name', nameAttr).val(originalVal);
+                    $visibleInput.removeAttr('name');
+                    $visibleInput.after($altInput);
+                }
+            }
+        }
+
+        $visibleInput.attr('readonly', 'readonly');
+        $visibleInput.css({ cursor: 'pointer' });
+        $visibleInput.addClass('persian-time-input');
+
+        function parseTime(val) {
+            if (!val) return null;
+            const s = toAsciiDigits(String(val)).trim();
+            const m = s.match(/(\d{1,2})\s*:\s*(\d{1,2})/);
+            if (!m) return null;
+            let h = parseInt(m[1], 10);
+            let mi = parseInt(m[2], 10);
+            if (isNaN(h) || isNaN(mi)) return null;
+            h = Math.max(0, Math.min(23, h));
+            mi = Math.max(0, Math.min(59, mi));
+            return { h: h, m: mi };
+        }
+
+        function safeInt(v, def, min, max) {
+            let n = parseInt(v, 10);
+            if (isNaN(n)) n = def;
+            if (n < min) n = min;
+            if (n > max) n = max;
+            return n;
+        }
+
+        function setDisplay(h, mi) {
+            const raw = padZero(h) + ':' + padZero(mi);
+            $visibleInput.data('persian-time-val', raw);
+            if ($altInput && $altInput.length) {
+                $altInput.val(raw);
+                if ($altInput[0]) {
+                    $altInput[0].dispatchEvent(new Event('input', { bubbles: true }));
+                    $altInput[0].dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+            $visibleInput.val(toPersianDigits(raw));
+            if ($visibleInput[0]) {
+                $visibleInput[0].dispatchEvent(new Event('input', { bubbles: true }));
+                $visibleInput[0].dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+
+        const initParsed = parseTime(($altInput && $altInput.length) ? $altInput.val() : originalVal);
+        if (initParsed) {
+            const raw = padZero(initParsed.h) + ':' + padZero(initParsed.m);
+            $visibleInput.data('persian-time-val', raw);
+            $visibleInput.val(toPersianDigits(raw));
+        }
+
+        function getCurrent() {
+            const parsed = parseTime($visibleInput.data('persian-time-val'));
+            if (parsed) return parsed;
+            const now = new Date();
+            return { h: now.getHours(), m: now.getMinutes() };
+        }
+
+        let $popup = $visibleInput.data('persian-time-popup');
+        if (!$popup) {
+            $popup = $('<div class="persian-calendar-popup persian-time-popup" style="display:none; position:absolute; z-index:999999; pointer-events:auto;"></div>');
+            $popup.on('click mousedown mouseup pointerdown pointerup touchstart touchend', function(e) {
+                e.stopPropagation();
+            });
+            // Render the picker as a body-level portal. Appending it inside an
+            // Elementor/JetPopup container makes `position:absolute` use a transformed
+            // modal ancestor as its containing block, while jQuery.offset() returns
+            // document coordinates. Mixing those coordinate systems moves the picker
+            // far above the field on scrolled pages and inside animated popups.
+            $('body').append($popup);
+            $visibleInput.data('persian-time-popup', $popup);
+        }
+
+        const eventNamespace = '.persianTimePopup_' + Math.random().toString(36).substr(2, 9);
+
+        function positionPopup() {
+            if (!$popup.is(':visible')) return;
+            const offset = $visibleInput.offset();
+            const inputHeight = $visibleInput.outerHeight();
+            const popupHeight = $popup.outerHeight();
+            const popupWidth = $popup.outerWidth();
+            const windowHeight = $(window).height();
+            const windowWidth = $(window).width();
+            const scrollTop = $(window).scrollTop();
+            const scrollLeft = $(window).scrollLeft();
+            let top = offset.top + inputHeight + 5;
+            let left = offset.left;
+            if (top + popupHeight > scrollTop + windowHeight) {
+                if (offset.top - popupHeight - 5 > scrollTop) {
+                    top = offset.top - popupHeight - 5;
+                }
+            }
+            if (left + popupWidth > scrollLeft + windowWidth) {
+                left = scrollLeft + windowWidth - popupWidth - 15;
+            }
+            if (left < scrollLeft) {
+                left = scrollLeft + 15;
+            }
+            // The popup is portalled to body, so these document coordinates can
+            // be applied directly without subtracting a modal/container offset.
+            $popup.css({ top: top + 'px', left: left + 'px' });
+        }
+
+        const scrollHandler = function() {
+            if ($popup.is(':visible')) positionPopup();
+        };
+
+        const outsideClickHandler = function(e) {
+            if (!$(e.target).closest($popup).length && !$(e.target).closest($visibleInput).length) {
+                hidePopup();
+            }
+        };
+
+        function renderPopup() {
+            const cur = getCurrent();
+            $popup.html(
+                '<div class="persian-calendar-wrapper">' +
+                  '<div class="persian-calendar-header">' +
+                    '<h3 class="persian-calendar-title">انتخاب زمان</h3>' +
+                    '<div class="persian-calendar-header-actions">' +
+                      '<button type="button" class="persian-calendar-now-btn persian-time-now">اکنون</button>' +
+                      '<button type="button" class="persian-calendar-close-btn persian-time-close" aria-label="بستن"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+                    '</div>' +
+                  '</div>' +
+                  '<div class="persian-time-display">' +
+                    '<div class="persian-time-cell">' +
+                      '<button type="button" class="persian-time-step" data-unit="hour" data-dir="1"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 15l-6-6-6 6"/></svg></button>' +
+                      '<input type="text" inputmode="numeric" maxlength="2" class="persian-time-num persian-time-hour" />' +
+                      '<button type="button" class="persian-time-step" data-unit="hour" data-dir="-1"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button>' +
+                      '<div class="persian-time-caption">ساعت</div>' +
+                    '</div>' +
+                    '<div class="persian-time-colon">:</div>' +
+                    '<div class="persian-time-cell">' +
+                      '<button type="button" class="persian-time-step" data-unit="minute" data-dir="1"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 15l-6-6-6 6"/></svg></button>' +
+                      '<input type="text" inputmode="numeric" maxlength="2" class="persian-time-num persian-time-minute" />' +
+                      '<button type="button" class="persian-time-step" data-unit="minute" data-dir="-1"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button>' +
+                      '<div class="persian-time-caption">دقیقه</div>' +
+                    '</div>' +
+                  '</div>' +
+                '</div>'
+            );
+            $popup.find('.persian-time-hour').val(toPersianDigits(padZero(cur.h)));
+            $popup.find('.persian-time-minute').val(toPersianDigits(padZero(cur.m)));
+        }
+
+        function commit() {
+            const $h = $popup.find('.persian-time-hour');
+            const $m = $popup.find('.persian-time-minute');
+            const h = safeInt(toAsciiDigits($h.val()), 0, 0, 23);
+            const mi = safeInt(toAsciiDigits($m.val()), 0, 0, 59);
+            setDisplay(h, mi);
+        }
+
+        function showPopup() {
+            if ($popup.is(':visible')) return;
+            $('.persian-calendar-popup').not($popup).each(function() {
+                const otherInput = $(this).data('persian-input-owner');
+                if (otherInput && otherInput[0] && typeof otherInput[0].persianCalendarHide === 'function') {
+                    otherInput[0].persianCalendarHide();
+                } else {
+                    $(this).hide();
+                }
+            });
+            renderPopup();
+            $popup.css({ display: 'block', visibility: 'hidden', top: 0, left: 0 });
+            positionPopup();
+            $popup.css({ visibility: 'visible' });
+            $(window).on('resize' + eventNamespace, positionPopup);
+            window.addEventListener('scroll', scrollHandler, true);
+            $(document).on('click' + eventNamespace, outsideClickHandler);
+        }
+
+        function hidePopup() {
+            if (!$popup.is(':visible')) return;
+            $popup.hide();
+            $(window).off('resize' + eventNamespace);
+            window.removeEventListener('scroll', scrollHandler, true);
+            $(document).off('click' + eventNamespace);
+        }
+
+        if ($visibleInput[0]) {
+            $visibleInput[0].persianCalendarHide = hidePopup;
+        }
+        $popup.data('persian-input-owner', $visibleInput);
+
+        $popup.on('click', '.persian-time-close', function(e) {
+            e.stopPropagation();
+            hidePopup();
+        });
+
+        $popup.on('click', '.persian-time-now', function(e) {
+            e.stopPropagation();
+            const now = new Date();
+            setDisplay(now.getHours(), now.getMinutes());
+            hidePopup();
+        });
+
+        $popup.on('click', '.persian-time-step', function(e) {
+            e.stopPropagation();
+            const unit = $(this).attr('data-unit');
+            const dir = parseInt($(this).attr('data-dir'), 10);
+            const cur = getCurrent();
+            if (unit === 'hour') {
+                cur.h = (cur.h + dir + 24) % 24;
+            } else {
+                cur.m = (cur.m + dir + 60) % 60;
+            }
+            setDisplay(cur.h, cur.m);
+            $popup.find('.persian-time-hour').val(toPersianDigits(padZero(cur.h)));
+            $popup.find('.persian-time-minute').val(toPersianDigits(padZero(cur.m)));
+        });
+
+        $popup.on('input', '.persian-time-num', function() {
+            const $t = $(this);
+            const isHour = $t.hasClass('persian-time-hour');
+            const max = isHour ? 23 : 59;
+            let ascii = toAsciiDigits($t.val()).replace(/[^0-9]/g, '');
+            if (ascii.length > 2) ascii = ascii.slice(0, 2);
+            let n = parseInt(ascii, 10);
+            if (!isNaN(n) && n > max) {
+                n = max;
+                ascii = String(max);
+            }
+            $t.val(toPersianDigits(ascii));
+            if (ascii !== '') {
+                commit();
+            }
+            if (ascii.length === 2 && isHour) {
+                $popup.find('.persian-time-minute').focus().select();
+            }
+        });
+
+        $popup.on('keydown', '.persian-time-num', function(e) {
+            const $t = $(this);
+            const isHour = $t.hasClass('persian-time-hour');
+            const cur = getCurrent();
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const dir = (e.key === 'ArrowUp') ? 1 : -1;
+                if (isHour) {
+                    cur.h = (cur.h + dir + 24) % 24;
+                } else {
+                    cur.m = (cur.m + dir + 60) % 60;
+                }
+                setDisplay(cur.h, cur.m);
+                $t.val(toPersianDigits(padZero(isHour ? cur.h : cur.m)));
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                commit();
+                hidePopup();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                hidePopup();
+            }
+        });
+
+        $visibleInput.on('click focus', function(e) {
+            e.stopPropagation();
+            if ($popup.is(':visible')) {
+                positionPopup();
+                return;
+            }
+            showPopup();
+        });
+
+        if (typeof MutationObserver !== 'undefined') {
+            const parentNode = $visibleInput.parent()[0];
+            if (parentNode) {
+                const observer = new MutationObserver(function() {
+                    if ($visibleInput[0] && !document.contains($visibleInput[0])) {
+                        hidePopup();
+                        $popup.remove();
+                        observer.disconnect();
+                    }
+                });
+                observer.observe(parentNode, { childList: true, subtree: true });
+            }
+        }
+
+        return true;
+    },
+
     setupJalaliDatePicker: function($visibleInput, $altInput, showTime, $) {
         if (typeof window.PersianCalendar === 'undefined') return false;
         
@@ -1236,16 +1565,16 @@
 
         let $popup = $visibleInput.data('persian-popup');
         if (!$popup) {
-            $popup = $('<div class="persian-calendar-popup" style="display:none; position:absolute; z-index:999999; background:#fff; box-shadow:0 4px 20px rgba(0,0,0,0.15); border:1px solid #edf2f7; border-radius:8px; padding:15px; width:280px;"></div>');
+            $popup = $('<div class="persian-calendar-popup" style="display:none; position:absolute; z-index:999999; pointer-events:auto; background:#fff; box-shadow:0 4px 20px rgba(0,0,0,0.15); border:1px solid #edf2f7; border-radius:8px; padding:15px; width:280px;"></div>');
             $popup.on('click mousedown mouseup pointerdown pointerup touchstart touchend', function(e) {
                 e.stopPropagation();
             });
-            const $parentPopup = $visibleInput.closest('.elementor-popup-modal, .jet-popup, .dialog-widget, .jet-popup-container');
-            if ($parentPopup.length) {
-                $parentPopup.append($popup);
-            } else {
-                $('body').append($popup);
-            }
+            // Render the picker as a body-level portal. Appending it inside an
+            // Elementor/JetPopup container makes `position:absolute` use a transformed
+            // modal ancestor as its containing block, while jQuery.offset() returns
+            // document coordinates. Mixing those coordinate systems moves the picker
+            // far above the field on scrolled pages and inside animated popups.
+            $('body').append($popup);
             $visibleInput.data('persian-popup', $popup);
         }
 
@@ -1339,13 +1668,8 @@
                 left = scrollLeft + 15;
             }
 
-            const $parent = $popup.parent();
-            if ($parent.length && !$parent.is('body')) {
-                const parentOffset = $parent.offset();
-                top -= parentOffset.top;
-                left -= parentOffset.left;
-            }
-
+            // The popup is portalled to body, so these document coordinates can
+            // be applied directly without subtracting a modal/container offset.
             $popup.css({ top: top + 'px', left: left + 'px' });
         }
 
