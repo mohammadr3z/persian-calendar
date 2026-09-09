@@ -119,45 +119,15 @@ if (!function_exists('persca_rest_route_matches')) {
 
 if (!function_exists('persca_keep_jalali_on_rest_routes')) {
     /**
-     * Re-enable Jalali conversion for a plugin's own display oriented REST routes.
+     * @deprecated 1.5.0 No longer needed as date conversion is format-driven.
      *
-     * Since 1.4.0 every REST request is treated as a machine context, so
-     * date_i18n()/wp_date() stop converting. That is correct for core routes
-     * (wp/v2), WooCommerce Analytics and exporters, which must stay Gregorian,
-     * but it also silenced the Jalali output of admin screens that are rendered
-     * from a plugin's own REST endpoints (JetBooking bookings calendar and
-     * timeline, JetEngine listings, JetFormBuilder records).
-     *
-     * Machine formats (c, r, U, DATE_ATOM ...) are still excluded upstream by
-     * PERSCA_Plugin::should_convert_date(), and only the passed route fragments
-     * are re-enabled.
-     *
-     * @param string[]      $needles     Lower-case route fragments to allow.
-     * @param callable|null $is_active   Optional callback that must return true.
+     * @param string[]      $needles   Lower-case route fragments.
+     * @param callable|null $is_active Optional callback.
      * @return void
      */
     function persca_keep_jalali_on_rest_routes(array $needles, ?callable $is_active = null): void
     {
-        add_filter(
-            'persca_should_convert_date',
-            static function ($should_convert, $format, $timestamp, $context) use ($needles, $is_active) {
-                if ($should_convert || 'rest' !== $context) {
-                    return $should_convert;
-                }
-
-                if (null !== $is_active && !$is_active()) {
-                    return $should_convert;
-                }
-
-                if (!persca_rest_route_matches($needles)) {
-                    return $should_convert;
-                }
-
-                return true;
-            },
-            10,
-            4
-        );
+        // No-op: date conversion is now strictly format-driven across all contexts.
     }
 }
 

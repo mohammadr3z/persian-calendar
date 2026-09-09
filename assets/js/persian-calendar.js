@@ -1091,12 +1091,14 @@
 
     parseLocalDate: function(dateStr) {
         if (!dateStr) return null;
-        if (dateStr instanceof Date) return dateStr;
+        if (dateStr instanceof Date) return isNaN(dateStr.getTime()) ? null : dateStr;
         
         const normalizedStr = toAsciiDigits(String(dateStr)).trim();
+        if (!normalizedStr) return null;
 
-        // Handle Unix timestamps (seconds or milliseconds)
-        if (/^\d+$/.test(normalizedStr)) {
+        // Handle Unix timestamps (seconds 9-10 digits, or milliseconds 12-13 digits)
+        // Prevent treating small numbers (like ID 1, 42, etc.) as timestamps
+        if (/^\d{9,13}$/.test(normalizedStr)) {
             const num = parseInt(normalizedStr, 10);
             const d = num < 9999999999 ? new Date(num * 1000) : new Date(num);
             return isNaN(d.getTime()) ? null : d;
@@ -1104,23 +1106,51 @@
 
         const parts = normalizedStr.split(/[-T \/:]/);
         if (parts.length >= 3) {
-            const y = parseInt(parts[0], 10);
-            const m = parseInt(parts[1], 10);
-            const d = parseInt(parts[2], 10);
+            let y, m, d;
+            const p0 = parseInt(parts[0], 10);
+            const p1 = parseInt(parts[1], 10);
+            const p2 = parseInt(parts[2], 10);
+
+            if (parts[0].length === 4 || p0 >= 1000) {
+                // Format: YYYY-MM-DD or YYYY/MM/DD
+                y = p0;
+                m = p1;
+                d = p2;
+            } else if (parts[2].length === 4 || p2 >= 1000) {
+                // Format: DD/MM/YYYY or MM/DD/YYYY or DD-MM-YYYY
+                y = p2;
+                m = p1;
+                d = p0;
+            } else if (p2 <= 99 && (p0 > 12 || p1 <= 12)) {
+                // Format: DD/MM/YY (e.g. 16/05/05 -> day 16, month 05, year 1405)
+                y = (p2 <= 50 ? 1400 : 1300) + p2;
+                m = p1;
+                d = p0;
+            } else {
+                y = p0;
+                m = p1;
+                d = p2;
+            }
+
             const hh = parts.length > 3 ? parseInt(parts[3], 10) : 0;
             const mi = parts.length > 4 ? parseInt(parts[4], 10) : 0;
             const ss = parts.length > 5 ? parseInt(parts[5], 10) : 0;
 
-            if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+            if (isNaN(y) || isNaN(m) || isNaN(d) || y <= 0 || m <= 0 || d <= 0) return null;
 
             // If it is a Jalali year (e.g. 1300 to 1500)
             if (y >= 1300 && y <= 1500) {
                 const g = jalaliToGregorian(y, m, d);
-                if (g[0] > 0) {
+                if (g && g[0] > 0) {
                     const gd = new Date(g[0], g[1] - 1, g[2], hh, mi, ss);
                     return isNaN(gd.getTime()) ? null : gd;
                 }
                 return null;
+            }
+
+            // 2-digit years (< 100)
+            if (y < 100) {
+                y = (y > 70 ? 1900 : 2000) + y;
             }
 
             // Otherwise assume Gregorian
@@ -1132,7 +1162,7 @@
         return isNaN(d.getTime()) ? null : d;
     },
 
-    updateDisplayVal: function($visibleInput, dateVal) {
+    updateDisplayVal: function($visibleInput, dateVal, $altInput) {
         if (!dateVal) return;
         const d = window.PersianCalendarIntegrations.parseLocalDate(dateVal);
         if (!d) return;
@@ -1140,6 +1170,13 @@
         const showTime = $visibleInput.data('persian-show-time') || false;
         const rawVal = formatGregorianISO(d, showTime);
         $visibleInput.data('persian-gregorian-val', rawVal);
+
+        if (!$altInput && $visibleInput && typeof $visibleInput.next === 'function') {
+            $altInput = $visibleInput.next('input[type="hidden"]');
+        }
+        if ($altInput && $altInput.length) {
+            $altInput.val(rawVal);
+        }
 
         if (window.PersianDateConverter) {
             const jalali = window.PersianDateConverter.gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
@@ -1153,23 +1190,35 @@
 
     overrideNativeValue: function(el, $) {
         if (!el) return;
+        if ($(el).hasClass('persian-calendar-year-display') || 
+            $(el).hasClass('persian-calendar-day-display') || 
+            $(el).hasClass('persian-calendar-hour') || 
+            $(el).hasClass('persian-calendar-minute') ||
+            $(el).closest('.persian-calendar, .persian-calendar-container, .persca-calendar-modal-overlay').length) {
+            return;
+        }
         const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
         Object.defineProperty(el, 'value', {
             get: function() {
                 const gregVal = $(this).data('persian-gregorian-val');
-                return (gregVal !== undefined && gregVal !== null) ? gregVal : descriptor.get.call(this);
+                return (gregVal !== undefined && gregVal !== null && gregVal !== '') ? gregVal : descriptor.get.call(this);
             },
             set: function(val) {
-                const valStr = String(val);
-                if (/^\d{4}-\d{2}-\d{2}/.test(valStr)) {
-                    $(this).data('persian-gregorian-val', valStr);
-                    window.PersianCalendarIntegrations.updateDisplayVal($(this), valStr);
-                } else {
-                    if (!val) {
-                        $(this).data('persian-gregorian-val', '');
-                    }
-                    descriptor.set.call(this, val);
+                const valStr = String(val || '').trim();
+                if (!valStr) {
+                    $(this).data('persian-gregorian-val', '');
+                    descriptor.set.call(this, '');
+                    return;
                 }
+                const parsed = window.PersianCalendarIntegrations.parseLocalDate(valStr);
+                if (parsed && !isNaN(parsed.getTime())) {
+                    if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(valStr) || /^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(valStr) || /^\d{9,13}$/.test(valStr)) {
+                        $(this).data('persian-gregorian-val', valStr);
+                        window.PersianCalendarIntegrations.updateDisplayVal($(this), valStr);
+                        return;
+                    }
+                }
+                descriptor.set.call(this, val);
             },
             configurable: true,
             enumerable: true
@@ -1560,7 +1609,7 @@
             if (/^\d{4}-\d{2}-\d{2}/.test(initialVal)) {
                 $visibleInput.data('persian-gregorian-val', initialVal);
             }
-            window.PersianCalendarIntegrations.updateDisplayVal($visibleInput, initialVal);
+            window.PersianCalendarIntegrations.updateDisplayVal($visibleInput, initialVal, $altInput);
         }
 
         let $popup = $visibleInput.data('persian-popup');

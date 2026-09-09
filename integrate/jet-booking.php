@@ -27,16 +27,6 @@ add_action('wp_default_scripts', 'persca_jet_booking_add_dependencies', 100);
 add_action('admin_enqueue_scripts', 'persca_jet_booking_add_dependencies', 100);
 add_action('wp_enqueue_scripts', 'persca_jet_booking_add_dependencies', 100);
 
-// The bookings calendar, timeline and details panel are rendered from
-// JetBooking's own REST endpoints, so those responses must stay Jalali.
-if (function_exists('persca_keep_jalali_on_rest_routes')) {
-    persca_keep_jalali_on_rest_routes(
-        array('jet-abaf', 'jet_abaf', 'jet-booking'),
-        static function () {
-            return class_exists('JET_ABAF\\Plugin') || defined('JET_ABAF_VERSION');
-        }
-    );
-}
 
 /**
  * Enqueue Persian Calendar integration scripts and styles for JetBooking.

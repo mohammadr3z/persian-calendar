@@ -560,14 +560,15 @@ function persca_edd_apply_range_override(string $preset)
  * CURRENCY DECIMALS
  * ========================================================================== */
 
-add_filter('edd_format_amount_decimals', '__return_zero', 999);
-add_filter('edd_sanitize_amount_decimals', '__return_zero', 999);
+// add_filter('edd_format_amount_decimals', '__return_zero', 999);
+// add_filter('edd_sanitize_amount_decimals', '__return_zero', 999);
 
-add_action('admin_enqueue_scripts', 'persca_edd_set_admin_currency_decimals', 100);
+// add_action('admin_enqueue_scripts', 'persca_edd_set_admin_currency_decimals', 100);
 
 /**
  * Set EDD admin script currency decimals to zero.
  */
+/*
 function persca_edd_set_admin_currency_decimals(): void
 {
     if (function_exists('wp_add_inline_script')) {
@@ -578,6 +579,7 @@ function persca_edd_set_admin_currency_decimals(): void
         );
     }
 }
+*/
 
 /* =============================================================================
  * DASHBOARD "SALES SUMMARY" WIDGET (Jalali)

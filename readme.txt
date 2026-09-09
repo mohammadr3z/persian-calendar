@@ -4,7 +4,7 @@ Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
 Tested up to: 7.0
 Requires PHP: 7.2
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,6 +39,9 @@ This plugin features deep integration with Crocoblock JetPlugins, EDD, and WooCo
 *   **JetBooking Integration:** 
     *   Full Jalali date range picker support on frontend booking forms.
     *   Jalali calendar conversion in backend booking calendars, timelines, and booking details fields.
+*   **JetAppointments Booking Integration:**
+    *   Full Jalali date picker and time slot support on frontend appointment booking forms.
+    *   Jalali calendar conversion in backend appointment calendars, timelines, schedules, and booking details fields.
 *   **Easy Digital Downloads (EDD) Integration:**
     *   Full Shamsi (Jalali) calendar support across EDD admin pages: discount start/end dates, orders, customer dates, and reports.
     *   Seamlessly converts Shamsi inputs back to standard date format behind the scenes without breaking EDD data.
@@ -57,6 +60,11 @@ This plugin features deep integration with Crocoblock JetPlugins, EDD, and WooCo
 
 == Frequently Asked Questions ==
 
+= Which third-party plugins are supported and converted to the Jalali calendar? =
+Yes, this plugin provides full Jalali (Persian/Shamsi) calendar conversion and date picker compatibility for:
+* **Crocoblock JetPlugins:** JetBooking, JetAppointments Booking, JetEngine, JetFormBuilder, and JetSmartFilters.
+* **WooCommerce & Easy Digital Downloads (EDD):** Orders, coupons, discounts, sales schedules, and reports.
+
 = Is this plugin compatible with all themes? =
 Yes, this plugin works with all WordPress themes.
 
@@ -74,6 +82,13 @@ No, the plugin is optimized and has minimal impact on performance.
 4. EDD reports
 
 == Changelog ==
+
+= 1.5.0 =
+* Added JetAppointments Booking Integration: Full Jalali calendar support for JetAppointments Booking plugin including appointment schedules, backend timeline, calendars, and frontend booking forms.
+* JetBooking Fix: Fixed timeline date range coverage calculation so the timeline bar covers the full date range including the check-out day.
+
+= 1.4.1 =
+* Fixed background date conversion issues by introducing format-driven machine date detection.
 
 = 1.4.0 =
 * Added WooCommerce Integration: Complete Jalali calendar support for WooCommerce orders, coupons, product schedules, reports, and analytics.

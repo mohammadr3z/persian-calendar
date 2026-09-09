@@ -19,16 +19,6 @@ add_action('wp_default_scripts', 'persca_jet_engine_add_dependencies', 100);
 add_action('admin_enqueue_scripts', 'persca_jet_engine_add_dependencies', 100);
 add_action('wp_enqueue_scripts', 'persca_jet_engine_add_dependencies', 100);
 
-// JetEngine renders listings, CCT tables and profile builder screens through its
-// own REST endpoints. Those responses are display output, so keep them Jalali.
-if (function_exists('persca_keep_jalali_on_rest_routes')) {
-    persca_keep_jalali_on_rest_routes(
-        array('jet-engine', 'jet_engine', 'jet-cct'),
-        static function () {
-            return class_exists('Jet_Engine');
-        }
-    );
-}
 
 function persca_jet_engine_enqueue_assets() {
     if (!persca_is_jalali_enabled() || !class_exists('Jet_Engine')) {

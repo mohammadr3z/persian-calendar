@@ -65,6 +65,7 @@ class PERSCA_Plugin
                 'enable_integration_jet_engine'        => 'jet-engine.php',
                 'enable_integration_jet_form_builder'  => 'jet-form-builder.php',
                 'enable_integration_jet_booking'       => 'jet-booking.php',
+                'enable_integration_jet_appointments'  => 'jet-appointments-booking.php',
                 'enable_integration_jet_smart_filters' => 'jet-smart-filters.php',
                 'enable_integration_edd'               => 'edd.php',
                 'enable_integration_woocommerce'       => 'woocommerce.php',
@@ -139,11 +140,10 @@ class PERSCA_Plugin
     }
 
     /**
-     * Standard, unambiguous machine formats.
+     * Standard, unambiguous machine and technical date formats.
      *
-     * Only formats that are machine readable by definition belong here. A
-     * shape such as Y-m-d is deliberately absent: it is just as common as a
-     * display format, so the request context decides, not the format string.
+     * Formats here are machine readable and should remain Gregorian across all contexts
+     * (cron, REST API, AJAX, database queries, internal handlers).
      *
      * @return string[]
      */
@@ -155,8 +155,16 @@ class PERSCA_Plugin
             'U',
             DATE_ATOM,
             DATE_W3C,
+            DATE_RFC822,
+            DATE_RFC1123,
             DATE_RFC2822,
             DATE_RFC3339,
+            'Y-m-d H:i:s',
+            'Y-m-d H:i',
+            'Y-m-d\TH:i:s',
+            'Y-m-d\TH:i:s\Z',
+            'Y-m-d\TH:i:s.u\Z',
+            'Y-m-d\TH:i:sP',
         ];
 
         // Several of these constants share the same value.
@@ -166,73 +174,11 @@ class PERSCA_Plugin
     }
 
     /**
-     * Whether the current AJAX request is a known machine/export endpoint.
-     *
-     * Front-end AJAX is display output and must stay Jalali, so only vetted
-     * action names are bypassed. Site owners can extend the list.
-     *
-     * @return bool
-     */
-    private function is_machine_ajax_action(): bool
-    {
-        if (! function_exists('wp_doing_ajax') || ! wp_doing_ajax()) {
-            return false;
-        }
-
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $action = isset($_REQUEST['action']) ? sanitize_key(wp_unslash($_REQUEST['action'])) : '';
-
-        if ('' === $action) {
-            return false;
-        }
-
-        $actions = (array) apply_filters(
-            'persca_machine_ajax_actions',
-            [
-                'woocommerce_do_ajax_product_export',
-            ]
-        );
-
-        return in_array($action, $actions, true);
-    }
-
-    /**
-     * Machine request context, or an empty string for display contexts.
-     *
-     * @return string
-     */
-    private function machine_date_context(): string
-    {
-        if (defined('REST_REQUEST') && REST_REQUEST) {
-            return 'rest';
-        }
-
-        if (defined('WP_CLI') && WP_CLI) {
-            return 'cli';
-        }
-
-        if (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST) {
-            return 'xmlrpc';
-        }
-
-        // Precautionary: core feed templates ask mysql2date() not to translate,
-        // so this mainly covers third-party feeds.
-        if (isset($GLOBALS['wp_query']) && function_exists('is_feed') && is_feed()) {
-            return 'feed';
-        }
-
-        if ($this->is_machine_ajax_action()) {
-            return 'ajax_export';
-        }
-
-        return '';
-    }
-
-    /**
      * Whether a date passing through date_i18n()/wp_date() may be converted.
      *
-     * The request context decides first: a machine context is never converted,
-     * even when the format matches the site's display format.
+     * Format-driven approach (similar to wp-parsidate): machine/technical formats
+     * are never converted, ensuring background jobs, REST endpoints, and database
+     * writers stay 100% Gregorian regardless of request context.
      *
      * @param string $format    Requested date format.
      * @param mixed  $timestamp Timestamp handed to the filter.
@@ -240,17 +186,22 @@ class PERSCA_Plugin
      */
     private function should_convert_date($format, $timestamp): bool
     {
-        $context = $this->machine_date_context();
+        $is_machine     = in_array((string) $format, $this->machine_date_formats(), true);
+        $should_convert = ! $is_machine;
 
-        if (in_array((string) $format, $this->machine_date_formats(), true)) {
-            $should_convert = false;
-            $context        = 'standard_format';
-        } elseif ('' !== $context) {
-            $should_convert = false;
-        } else {
+        global $pagenow;
+        if ('options-general.php' === $pagenow && ('Y-m-d H:i:s' === (string) $format || 'Y-m-d H:i' === (string) $format)) {
             $should_convert = true;
-            $context        = 'display';
         }
+
+        if ($should_convert && $this->is_woocommerce_context()) {
+            $format_str = (string) $format;
+            if ('Y-m-d' === $format_str || 'Y-m-d H:i:s' === $format_str || 'Y-m-d H:i' === $format_str) {
+                $should_convert = false;
+            }
+        }
+
+        $context        = $is_machine ? 'standard_format' : 'display';
 
         return (bool) apply_filters(
             'persca_should_convert_date',
@@ -260,6 +211,80 @@ class PERSCA_Plugin
             $context
         );
     }
+
+    /**
+     * Whether the current request is within a WooCommerce context.
+     *
+     * @return bool
+     */
+    private function is_woocommerce_context(): bool
+    {
+        if (! class_exists('WooCommerce') && ! defined('WC_VERSION')) {
+            return false;
+        }
+
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended
+        $page      = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
+        $post_type = isset($_GET['post_type']) ? sanitize_text_field(wp_unslash($_GET['post_type'])) : '';
+        $action    = isset($_REQUEST['action']) ? sanitize_text_field(wp_unslash($_REQUEST['action'])) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+        $wc_pages = [
+            'wc-reports',
+            'wc-admin',
+            'wc-settings',
+            'wc-status',
+            'wc-orders',
+            'wc-orders--shop_subscription',
+            'wc-admin-coupons',
+        ];
+
+        if (in_array($page, $wc_pages, true)) {
+            return true;
+        }
+
+        $wc_post_types = ['product', 'shop_order', 'shop_coupon', 'shop_order_refund'];
+
+        if (in_array($post_type, $wc_post_types, true)) {
+            return true;
+        }
+
+        if (0 === strpos($action, 'woocommerce_') || 0 === strpos($action, 'wc_')) {
+            return true;
+        }
+
+        if (function_exists('get_current_screen')) {
+            $screen = get_current_screen();
+
+            if ($screen) {
+                if (in_array($screen->post_type, $wc_post_types, true)) {
+                    return true;
+                }
+
+                if (false !== strpos((string) $screen->id, 'woocommerce')) {
+                    return true;
+                }
+
+                if (in_array($screen->id, ['edit-product_cat', 'edit-product_tag'], true)) {
+                    return true;
+                }
+            }
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $post_id = isset($_GET['post']) ? absint($_GET['post']) : 0;
+
+        if ($post_id) {
+            $type = get_post_type($post_id);
+            if (in_array($type, $wc_post_types, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
 
     /**
      * Canonical output for a standard machine format.

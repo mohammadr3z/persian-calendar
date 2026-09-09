@@ -473,18 +473,42 @@ function persca_wc_normalize_request(): void
     }
 
     $keys = persca_wc_date_request_keys();
+    $time_keys = [
+        'order_date_hour',
+        'order_date_minute',
+        'order_date_second',
+        '_sale_price_times_from',
+        '_sale_price_times_to',
+        'variable_sale_price_times_from',
+        'variable_sale_price_times_to',
+    ];
 
     // phpcs:disable WordPress.Security.NonceVerification
     if (! empty($_GET) && is_array($_GET)) {
         $_GET = persca_wc_convert_request_array($_GET, $keys);
+        foreach ($time_keys as $tkey) {
+            if (isset($_GET[$tkey]) && is_string($_GET[$tkey])) {
+                $_GET[$tkey] = persca_wc_to_ascii_digits($_GET[$tkey]);
+            }
+        }
     }
 
     if (! empty($_POST) && is_array($_POST)) {
         $_POST = persca_wc_convert_request_array($_POST, $keys);
+        foreach ($time_keys as $tkey) {
+            if (isset($_POST[$tkey]) && is_string($_POST[$tkey])) {
+                $_POST[$tkey] = persca_wc_to_ascii_digits($_POST[$tkey]);
+            }
+        }
     }
 
     if (! empty($_REQUEST) && is_array($_REQUEST)) {
         $_REQUEST = persca_wc_convert_request_array($_REQUEST, $keys);
+        foreach ($time_keys as $tkey) {
+            if (isset($_REQUEST[$tkey]) && is_string($_REQUEST[$tkey])) {
+                $_REQUEST[$tkey] = persca_wc_to_ascii_digits($_REQUEST[$tkey]);
+            }
+        }
     }
     // phpcs:enable WordPress.Security.NonceVerification
 }

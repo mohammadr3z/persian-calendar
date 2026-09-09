@@ -230,6 +230,16 @@
         return isNaN(d.getTime()) ? new Date() : d;
     }
 
+    /**
+     * Get unix timestamp in seconds from timestamp, Date, or date string.
+     * @param {*} val
+     * @returns {number}
+     */
+    function perscaGetUnixTimestampSeconds(val) {
+        const d = parseAnyDate(val);
+        return d ? Math.floor(d.getTime() / 1000) : 0;
+    }
+
     function getJalaliMonthUnixRange(jy, jm) {
         const gStart = toGregorian(jy, jm, 1);
         const startVal = Date.UTC(gStart[0], gStart[1] - 1, gStart[2], 0, 0, 0);
@@ -248,7 +258,7 @@
     function patchCalendarComponent(definition) {
         if (!definition) return;
 
-        definition.template = '<div class="jet-abaf-bookings-calendar persca-bookings-calendar">' +
+        definition.template = '<div class="jet-abaf-bookings-calendar persca-bookings-calendar persca-custom-calendar">' +
             '<div class="persca-calendar-nav-header">' +
             '<button type="button" class="persca-nav-btn prev-btn" @click="prevMonth">‹</button>' +
             '<span class="persca-calendar-nav-title">{{ currentMonthName }}</span>' +
@@ -261,7 +271,7 @@
             '<div class="persca-calendar-days">' +
             '<div class="persca-calendar-day empty-day" v-for="p in paddingDays" :key="\'pad-\' + p"></div>' +
             '<div class="persca-calendar-day" v-for="day in monthDays" :key="day.day">' +
-            '<div class="jet-abaf-calendar-day-number">{{ toPersianDigits(day.day) }}</div>' +
+            '<div class="jet-abaf-calendar-day-number persca-calendar-day-number">{{ toPersianDigits(day.day) }}</div>' +
             '<div class="jet-abaf-calendar-day-content">' +
             '<div' +
             ' v-for="(attr, index) in day.attributes"' +
@@ -536,8 +546,8 @@
             return this.itemsList.filter(function (item) {
                 const dataItem = item.gtArray && item.gtArray[0] ? item.gtArray[0].customData : null;
                 if (!dataItem) return false;
-                const start = parseInt(dataItem.check_in_date_timestamp || dataItem.check_in_date, 10);
-                const end = parseInt(dataItem.check_out_date_timestamp || dataItem.check_out_date, 10);
+                const start = perscaGetUnixTimestampSeconds(dataItem.check_in_date_timestamp || dataItem.check_in_date);
+                const end = perscaGetUnixTimestampSeconds(dataItem.check_out_date_timestamp || dataItem.check_out_date);
                 return start <= monthEnd && end >= monthStart;
             });
         };
@@ -601,12 +611,12 @@
             const monthStart = range.start;
             const daysInMonth = getDaysInJalaliMonth(this.currentYear, this.currentMonth);
             
-            const bookingStart = parseInt(dataItem.check_in_date_timestamp || dataItem.check_in_date, 10);
-            const bookingEnd = parseInt(dataItem.check_out_date_timestamp || dataItem.check_out_date, 10);
+            const bookingStart = perscaGetUnixTimestampSeconds(dataItem.check_in_date_timestamp || dataItem.check_in_date);
+            const bookingEnd = perscaGetUnixTimestampSeconds(dataItem.check_out_date_timestamp || dataItem.check_out_date);
             
             const offsetSeconds = bookingStart - monthStart;
             let offsetDays = Math.round(offsetSeconds / 86400);
-            let durationDays = Math.round((bookingEnd - bookingStart) / 86400);
+            let durationDays = Math.round((bookingEnd - bookingStart) / 86400) + 1;
             
             if (offsetDays < 0) {
                 durationDays += offsetDays;

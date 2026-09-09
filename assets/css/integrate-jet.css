@@ -407,7 +407,9 @@
 /* Selected state (All Calendars) */
 .persian-calendar-popup .persian-calendar-day.selected,
 .jet-abaf-jalali-range .persian-calendar-day.selected,
-.persca-jalali-datepicker-popup .persian-calendar-day.selected {
+.persca-jalali-datepicker-popup .persian-calendar-day.selected,
+.persca-dropdown-container .persian-calendar-day.selected,
+.persca-modal-calendar .persian-calendar-day.selected {
     background: #3858e9 !important;
     color: white !important;
 }
@@ -555,15 +557,18 @@
 }
 
 /* ──────────────────────────────────────────
-   Backend: Custom Bookings Calendar styling to mimic v-calendar layout
+   Backend: Custom Bookings & Appointments Calendar styling
    ────────────────────────────────────────── */
 
-.jet-abaf-bookings-calendar.persca-bookings-calendar {
+.jet-abaf-bookings-calendar.persca-bookings-calendar,
+.jet-apb-appointments-calendar.persca-appointments-calendar,
+.persca-custom-calendar {
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     padding: 16px;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    direction: rtl;
 }
 
 .persca-calendar-nav-header {
@@ -571,6 +576,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
+    direction: rtl;
 }
 
 .persca-nav-btn {
@@ -599,6 +605,7 @@
 .persca-calendar-grid {
     display: flex;
     flex-direction: column;
+    direction: rtl;
 }
 
 .persca-calendar-weekdays {
@@ -607,6 +614,7 @@
     margin-bottom: 8px;
     border-bottom: 1px solid #edf2f7;
     padding-bottom: 8px;
+    direction: rtl;
 }
 
 .persca-calendar-weekday {
@@ -624,6 +632,7 @@
     gap: 1px;
     background-color: #edf2f7;
     border: 1px solid #edf2f7;
+    direction: rtl;
 }
 
 .persca-calendar-day {
@@ -632,14 +641,18 @@
     display: flex;
     flex-direction: column;
     position: relative;
+    direction: rtl;
 }
 
 .persca-calendar-day.empty-day {
     background: #f7fafc;
 }
 
-.persca-calendar-day .jet-abaf-calendar-day-number {
-    align-self: flex-end;
+.persca-calendar-day .jet-abaf-calendar-day-number,
+.persca-calendar-day .jet-apb-calendar-day-number,
+.persca-calendar-day .persca-calendar-day-number {
+    align-self: flex-start !important;
+    text-align: right !important;
     color: #4a5568;
     font-weight: 500;
     margin-bottom: 4px;
@@ -653,7 +666,8 @@
     gap: 4px;
 }
 
-.jet-abaf-calendar-day-booking {
+.jet-abaf-calendar-day-booking,
+.jet-apb-calendar-day-appointment {
     margin-bottom: 2px;
 }
 
@@ -797,6 +811,10 @@
 
 .jet-abaf-wrap {
     margin: 10px 2px 0 20px;
+}
+
+.jet-apb-appointments-wrap {
+    margin: 15px 6px 26px 26px;
 }
 
 /* Animation for opening the calendar popup */
@@ -1045,4 +1063,427 @@
 .persian-time-popup .persian-calendar-close-btn svg {
     fill: none !important;
     stroke: currentColor !important;
+}
+
+/* =============================================================================
+ * JET APPOINTMENTS MODAL POPUP & TIME SLOTS STYLES
+ * ========================================================================== */
+
+/* Modal Overlay */
+.persca-calendar-modal-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 999999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    backdrop-filter: blur(2px);
+    direction: rtl !important;
+}
+
+/* Modal Box */
+.persca-calendar-modal-container {
+    background: #fff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25) !important;
+    width: 92% !important;
+    max-width: 380px !important;
+    min-height: 360px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    animation: perscaModalFadeIn 0.2s ease-out;
+}
+
+@keyframes perscaModalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Header */
+.persca-calendar-modal-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 14px 18px !important;
+    border-bottom: 1px solid #edf2f7 !important;
+    background: #fafafa !important;
+}
+
+.persca-calendar-modal-title {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #1d2327 !important;
+}
+
+.persca-calendar-modal-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+.persca-modal-back-btn {
+    background: none !important;
+    border: 1px solid #2271b1 !important;
+    color: #2271b1 !important;
+    border-radius: 4px !important;
+    padding: 3px 10px !important;
+    font-size: 12px !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+}
+
+.persca-modal-back-btn:hover {
+    background: #2271b1 !important;
+    color: #fff !important;
+}
+
+.persca-modal-close-btn {
+    background: none !important;
+    border: none !important;
+    font-size: 26px !important;
+    line-height: 1 !important;
+    color: #8c8f94 !important;
+    cursor: pointer !important;
+    padding: 2px 8px !important;
+    border-radius: 4px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.15s !important;
+}
+
+.persca-modal-close-btn:hover {
+    color: #d63638 !important;
+    background: #f0f0f1 !important;
+}
+
+/* Body */
+.persca-calendar-modal-body {
+    padding: 16px !important;
+    flex: 1 !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 300px !important;
+}
+
+.persca-calendar-view-wrap {
+    width: 100% !important;
+}
+
+.persca-slots-view-wrap {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 280px !important;
+    position: relative !important;
+}
+
+
+
+.persca-slots-view-wrap .day-slots-cansel {
+    display: none !important;
+}
+
+.list-table-item__cell.cell--date,
+.jet-apb-listing .cell--date,
+.cell--date,
+td[data-key="date"],
+.jet-apb-details__item-date .jet-apb-details__content,
+.jet-apb-details__item-date input.cx-vui-input,
+.jet-apb-item-date .jet-apb-details__content,
+.jet-apb-item-date input.cx-vui-input,
+.vuejs-datepicker-wrapper>.cx-vui-component input,
+.vdp-datepicker-input-wrapper input,
+.jet-apb-calendar-day-booking span,
+.jet-apb-days-schedule__slot-date,
+.jet-apb-days-schedule-slot__body,
+.jet-apb-days-off-schedule-slot__body {
+    text-align: right !important;
+    unicode-bidi: embed !important;
+}
+
+.jet-apb-listing .cell--date {
+    justify-content: center !important;
+    text-align: center !important;
+}
+
+.jet-apb-details__item-date .jet-apb-details__label,
+.jet-apb-item-date .jet-apb-details__label {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+.persian-calendar-year-display {
+    direction: ltr !important;
+    text-align: center !important;
+}
+
+/* =============================================================================
+ * JET RTL ALIGNMENTS
+ * ========================================================================== */
+
+.jet-apb-view {
+    margin-right: auto !important;
+    margin-left: 0 !important;
+}
+
+.rtl .cx-vui-button--size-link .cx-vui-button__content svg {
+    margin: 0 5px 1px 0 !important;
+}
+
+.jet-apb-title {
+    margin-left: 19px;
+    margin-right: 0 !important;
+}
+
+.jet-apb-view .cx-vui-button {
+    margin-right: 1px;
+    margin-left: 0 !important;
+}
+
+.jet-apb-filters .jet-apb-filter-search-icon {
+    margin: 1px 0 0 -24px;
+}
+
+.jet-apb-appointments-wrap .cx-vui-component .cx-vui-select,
+.jet-apb-appointments-wrap .cx-vui-component .time-picker input[type=text] {
+    background: #f8f8f8 url(../../img/select-arrow.svg) no-repeat left 10px top -28%;
+}
+
+.jet-apb-required-mark {
+    margin-right: 2px;
+    margin-left: 0 !important;
+}
+
+.jet-apb-gantt-chart .jet-apb-gc-settings .cx-vui-component .cx-vui-component__meta {
+    margin-left: 14px;
+    margin-right: 0 !important;
+}
+
+.jet-abaf-bookings-view {
+    margin-right: auto;
+    margin-left: 0 !important;
+}
+
+/* =============================================================================
+ * JET APPOINTMENTS FRONTEND CALENDAR - PERSIAN CALENDAR THEME
+ * ========================================================================== */
+
+.jet-apb-calendar {
+    direction: rtl !important;
+    text-align: right !important;
+    box-sizing: border-box;
+    font-family: 'VazirmatnVF', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.jet-apb-calendar * {
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.jet-apb-calendar-content {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #e8ecf3;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.jet-apb-calendar-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding-bottom: 14px !important;
+    margin-bottom: 8px !important;
+}
+
+.jet-apb-calendar-header__label {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #1a1a1a !important;
+    text-align: center !important;
+    flex: 1 !important;
+}
+
+.jet-apb-calendar-btn {
+    width: 32px !important;
+    height: 32px !important;
+    border: none !important;
+    background: transparent !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #3858e9 !important;
+    transition: background-color 0.15s ease, color 0.15s ease !important;
+    padding: 0 !important;
+}
+
+.jet-apb-calendar-btn:hover {
+    background-color: #f7f9fe !important;
+    color: #183ad6 !important;
+}
+
+.jet-apb-calendar-btn:focus,
+.jet-apb-calendar-btn:active {
+    background-color: #eff2fe !important;
+    color: #183ad6 !important;
+    outline: none !important;
+}
+
+.jet-apb-calendar-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+    fill: currentColor !important;
+}
+
+.jet-apb-calendar-week {
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    margin-bottom: 10px !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #f0f2f7 !important;
+}
+
+.jet-apb-calendar-week__day {
+    flex: 1 !important;
+    text-align: center !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #757575 !important;
+    height: 28px !important;
+    line-height: 28px !important;
+}
+
+.jet-apb-calendar-body {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+}
+
+.jet-apb-calendar-date {
+    width: 14.28% !important;
+    padding: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+}
+
+.jet-apb-calendar-date__body {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 13.5px !important;
+    cursor: pointer !important;
+    color: #1e1e1e !important;
+    transition: all 0.15s ease !important;
+    user-select: none !important;
+}
+
+.jet-apb-calendar-date:not(.jet-apb-calendar-date--disabled) .jet-apb-calendar-date__body:hover {
+    color: #3858e9 !important;
+    background-color: #f7f9fe !important;
+}
+
+.jet-apb-calendar-date--today .jet-apb-calendar-date__body {
+    background: #eef1f6 !important;
+    font-weight: 600 !important;
+    color: #1e1e1e !important;
+}
+
+.jet-apb-calendar-date--selected .jet-apb-calendar-date__body {
+    background: #3858e9 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(56, 88, 233, 0.35) !important;
+}
+
+.jet-apb-calendar-date--disabled .jet-apb-calendar-date__body {
+    color: #cccccc !important;
+    cursor: not-allowed !important;
+    background: transparent !important;
+    opacity: 0.45 !important;
+    pointer-events: none !important;
+}
+
+/* Range booking highlight */
+.jet-apb-calendar-date--in-range .jet-apb-calendar-date__body {
+    background-color: #f7f9fe !important;
+    color: #3858e9 !important;
+    border-radius: 0 !important;
+}
+
+.jet-apb-calendar-date--range-start .jet-apb-calendar-date__body {
+    background-color: #3858e9 !important;
+    color: #ffffff !important;
+    border-top-right-radius: 50% !important;
+    border-bottom-right-radius: 50% !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+.jet-apb-calendar-date--range-end .jet-apb-calendar-date__body {
+    background-color: #3858e9 !important;
+    color: #ffffff !important;
+    border-top-left-radius: 50% !important;
+    border-bottom-left-radius: 50% !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+/* Slots Section */
+.jet-apb-calendar-slots {
+    margin-top: 16px !important;
+    padding-top: 14px !important;
+    border-top: 1px solid #f0f2f7 !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+}
+
+.jet-apb-slot {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px 14px !important;
+    border: 1px solid #e0e4ec !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    color: #333333 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.jet-apb-slot:hover {
+    border-color: #3858e9 !important;
+    color: #3858e9 !important;
+    background: #f7f9fe !important;
+}
+
+.jet-apb-slot--selected,
+.jet-apb-slot.jet-apb-slot--selected {
+    background: #3858e9 !important;
+    color: #ffffff !important;
+    border-color: #3858e9 !important;
+    box-shadow: 0 2px 8px rgba(56, 88, 233, 0.3) !important;
 }

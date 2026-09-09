@@ -175,6 +175,9 @@ final class PERSCA_Admin
             if ($key === 'enable_integration_jet_booking' && ! (class_exists('JET_ABAF\\Plugin') || defined('JET_ABAF_VERSION'))) {
                 $out[$key] = false;
             }
+            if ($key === 'enable_integration_jet_appointments' && ! (class_exists('JET_APB\\Plugin') || defined('JET_APB_VERSION'))) {
+                $out[$key] = false;
+            }
             if ($key === 'enable_integration_jet_smart_filters' && ! class_exists('Jet_Smart_Filters')) {
                 $out[$key] = false;
             }
@@ -217,6 +220,7 @@ final class PERSCA_Admin
             'enable_integration_jet_engine' => false,
             'enable_integration_jet_form_builder' => false,
             'enable_integration_jet_booking' => false,
+            'enable_integration_jet_appointments' => false,
             'enable_integration_jet_smart_filters' => false,
             'enable_integration_edd' => false,
             'enable_integration_woocommerce' => false,
@@ -394,6 +398,7 @@ final class PERSCA_Admin
         $jet_engine_active = class_exists('Jet_Engine');
         $jet_form_builder_active = function_exists('jet_form_builder');
         $jet_booking_active = class_exists('JET_ABAF\\Plugin') || defined('JET_ABAF_VERSION');
+        $jet_appointments_active = class_exists('JET_APB\\Plugin') || defined('JET_APB_VERSION');
         $jet_smart_filters_active = class_exists('Jet_Smart_Filters');
         $edd_active = class_exists('Easy_Digital_Downloads') || function_exists('EDD') || defined('EDD_VERSION');
         $woocommerce_active = class_exists('WooCommerce') || defined('WC_VERSION');
@@ -427,6 +432,16 @@ final class PERSCA_Admin
                 'disabled_by' => !$jet_booking_active ? [
                     'active'  => true,
                     'message' => __('To use this integration, JetBooking plugin must be installed and active.', 'persian-calendar'),
+                ] : null,
+            ],
+            'enable_integration_jet_appointments' => [
+                'label' => __('JetAppointments Booking Integration', 'persian-calendar'),
+                'desc' => __('Enable Persian/Jalali calendar and date picker support in JetAppointments booking forms, time slots, and admin panels.', 'persian-calendar'),
+                'icon' => 'dashicons-calendar-alt',
+                'image' => 'jet-appointments.png',
+                'disabled_by' => !$jet_appointments_active ? [
+                    'active'  => true,
+                    'message' => __('To use this integration, JetAppointments Booking plugin must be installed and active.', 'persian-calendar'),
                 ] : null,
             ],
             'enable_integration_jet_smart_filters' => [
